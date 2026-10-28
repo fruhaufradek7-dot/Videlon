@@ -27,7 +27,7 @@ class HomeScreen extends ConsumerWidget {
         if (c.kind != HomeChipKind.subscriptions || hasSubs) c,
     ];
     final items = home.value?.items ?? const <VideoItem>[];
-    // YouTube puts a Shorts shelf after the first couple of videos.
+    // YouTube zobrazuje sekci krátkých videí za několika prvními videi.
     const shelfAt = 2;
 
     return Scaffold(
@@ -43,7 +43,7 @@ class HomeScreen extends ConsumerWidget {
             onLoadMore: () => ref.read(homeProvider.notifier).loadMore(),
             child: Listener(
               onPointerDown: (_) => HomeController.touched = true,
-              // The remote counts as touching Home too.
+              // I dálkový ovladač se počítá jako ovládání domovské obrazovky.
               child: Focus(
                 canRequestFocus: false,
                 skipTraversal: true,
@@ -113,7 +113,7 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-/// Zobrazuje se při první instalaci: nabídka se vytváří v tomto zařízení podle sledování a odběrů.
+/// Zobrazuje se při první instalaci: nabídka se vytváří v tomto zařízení podle historie sledování a odběrů.
 class _StartCard extends ConsumerWidget {
   const _StartCard();
 
