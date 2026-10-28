@@ -1,3 +1,4 @@
+
 import 'dart:async';
 import 'dart:io';
 
@@ -29,8 +30,8 @@ class DownloadEntry {
   double get progress => row.sizeBytes > 0 ? (row.downloadedBytes / row.sizeBytes).clamp(0, 1) : 0;
 }
 
-/// Offline downloads (docs/downloads.md): Android runs each one as a WorkManager job (DownloadWorker.kt); this keeps
-/// the `Downloads` table in sync with those jobs and tells the player which videos have a local copy.
+/// Offline stahování: Android spouští jednotlivá stahování jako úlohy WorkManageru.
+/// Tato třída synchronizuje tabulku Downloads a informuje přehrávač o místních kopiích videí.
 class DownloadManager {
   DownloadManager(this._db, this._ref) {
     _sub = watchAll().listen((all) {
@@ -100,7 +101,7 @@ class DownloadManager {
     await (_db.delete(_db.downloads)..where((d) => d.videoId.equals(videoId))).go();
   }
 
-  /// Polls the jobs every second while any is running, writing their progress and results to the table.
+  /// Každou sekundu kontroluje průběh aktivních stahování a ukládá jejich stav do databáze.
   void _poll() {
     _timer ??= Timer.periodic(const Duration(seconds: 1), (_) => sync());
   }
@@ -118,7 +119,7 @@ class DownloadManager {
       final id = j['videoId'] as String?;
       if (id == null) continue;
       final row = await (_db.select(_db.downloads)..where((d) => d.videoId.equals(id))).getSingleOrNull();
-      // A job for a removed download, or one already recorded.
+      // Úloha odstraněného stahování nebo stahování, které už bylo zaznamenáno.
       if (row == null || row.state == DownloadState.done) continue;
       final update = switch (j['state']) {
         'queued' => const DownloadsCompanion(state: Value(DownloadState.queued)),
@@ -143,7 +144,7 @@ class DownloadManager {
       if (j['state'] == 'done' && row.state != DownloadState.done) {
         finished = true;
         final title = (await (_db.select(_db.videos)..where((v) => v.videoId.equals(id))).getSingleOrNull())?.title;
-        showGlobalSnack('Downloaded${title == null ? '' : ': $title'}');
+        showGlobalSnack('Staženo${title == null ? '' : ': $title'}');
       }
     }
     if (finished) await _channel.invokeMethod('prune');
@@ -193,19 +194,19 @@ String _size(int bytes) {
 
 String _qualityName(int h) => switch (h) {
   >= 1080 => 'Full HD',
-  >= 720 => 'High',
-  >= 360 => 'Medium',
-  _ => 'Low',
+  >= 720 => 'Vysoká',
+  >= 360 => 'Střední',
+  _ => 'Nízká',
 };
 
-/// The ⋮ menu's / watch page's "Download": YouTube's quality sheet with real sizes, then the job.
+/// Nabídka „Stáhnout“ v nabídce ⋮ nebo na stránce videa.
 Future<void> startDownload(BuildContext context, WidgetRef ref, VideoItem video) async {
   final existing = ref.read(downloadOfProvider(video.id));
   if (existing != null) {
     await _showManage(context, ref, existing);
     return;
   }
-  // Ask for notifications (Android 13+) so the progress shows.
+  // Požádá o oprávnění k oznámením (Android 13+), aby se zobrazoval průběh.
   unawaited(const MethodChannel('youpipe/system').invokeMethod('requestNotifications'));
   final infoFuture = ref.read(videoInfoServiceProvider).get(video.id);
   final height = await showModalBottomSheet<int>(
@@ -216,14 +217,14 @@ Future<void> startDownload(BuildContext context, WidgetRef ref, VideoItem video)
       builder: (sheet, snap) {
         final options = snap.data?.downloadOptions.where((o) => o.$1 <= 1080).toList().reversed.toList();
         return SafeArea(
-          // Full width even when only a message shows (a Column alone would shrink to it).
+          // Nabídka zabírá celou šířku i tehdy, když obsahuje jen zprávu.
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
               const Padding(
                 padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
-                child: Text('Download quality', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+                child: Text('Kvalita stahování', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
               ),
               if (snap.hasError)
                 Padding(
@@ -231,7 +232,7 @@ Future<void> startDownload(BuildContext context, WidgetRef ref, VideoItem video)
                   child: Text(
                     snap.error is VideoUnavailable
                         ? (snap.error! as VideoUnavailable).friendly
-                        : 'Can\'t download this video',
+                        : 'Toto video se nepodařilo stáhnout',
                   ),
                 )
               else if (options == null)
@@ -252,7 +253,7 @@ Future<void> startDownload(BuildContext context, WidgetRef ref, VideoItem video)
   );
   if (height == null) return;
   await ref.read(downloadManagerProvider).start(video, height);
-  if (context.mounted) showSnack(context, 'Downloading…', action: 'View', onAction: () => openDownloads(context, ref));
+  if (context.mounted) showSnack(context, 'Stahování probíhá…', action: 'Zobrazit', onAction: () => openDownloads(context, ref));
 }
 
 Future<void> _showManage(BuildContext context, WidgetRef ref, DownloadEntry d) => showModalBottomSheet<void>(
@@ -265,7 +266,7 @@ Future<void> _showManage(BuildContext context, WidgetRef ref, DownloadEntry d) =
         if (d.row.state == DownloadState.failed)
           ListTile(
             leading: const Icon(Symbols.refresh),
-            title: const Text('Retry download'),
+            title: const Text('Zkusit stáhnout znovu'),
             onTap: () {
               Navigator.of(sheet).pop();
               _retry(ref, d);
@@ -273,11 +274,11 @@ Future<void> _showManage(BuildContext context, WidgetRef ref, DownloadEntry d) =
           ),
         ListTile(
           leading: const Icon(Symbols.delete),
-          title: Text(d.row.state == DownloadState.done ? 'Delete from downloads' : 'Cancel download'),
+          title: Text(d.row.state == DownloadState.done ? 'Odstranit ze stažených' : 'Zrušit stahování'),
           onTap: () {
             Navigator.of(sheet).pop();
             ref.read(downloadManagerProvider).remove(d.video.id);
-            showSnack(context, 'Removed from downloads');
+            showSnack(context, 'Odstraněno ze stažených');
           },
         ),
       ],
@@ -292,15 +293,15 @@ void openDownloads(BuildContext context, WidgetRef ref) {
   context.push('${branchPrefix(context)}/downloads');
 }
 
-/// The watch page's Download pill: "Download", "45%", or a check when saved.
+/// Tlačítko stahování na stránce videa: „Stáhnout“, průběh nebo potvrzení uložení.
 Widget downloadPill(BuildContext context, WidgetRef ref, VideoItem video) {
   final d = ref.watch(downloadOfProvider(video.id));
   final (icon, label) = switch (d?.row.state) {
-    DownloadState.done => (Symbols.download_done, 'Downloaded'),
-    DownloadState.downloading => (Symbols.downloading, '${(d!.progress * 100).round()}%'),
-    DownloadState.queued => (Symbols.schedule, 'Waiting'),
-    DownloadState.failed => (Symbols.error, 'Failed'),
-    null => (Symbols.download, 'Download'),
+    DownloadState.done => (Symbols.download_done, 'Staženo'),
+    DownloadState.downloading => (Symbols.downloading, '${(d!.progress * 100).round()} %'),
+    DownloadState.queued => (Symbols.schedule, 'Čeká na stažení'),
+    DownloadState.failed => (Symbols.error, 'Chyba stahování'),
+    null => (Symbols.download, 'Stáhnout'),
   };
   return PillButton(
     icon: icon,
@@ -320,22 +321,22 @@ class DownloadsScreen extends ConsumerWidget {
     final used = all.fold<int>(0, (sum, d) => sum + (d.row.state == DownloadState.done ? d.row.sizeBytes : 0));
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Downloads'),
+        title: const Text('Stažená videa'),
         leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Symbols.arrow_back)),
       ),
       body: MaxContentWidth(
         child: all.isEmpty
             ? const EmptyView(
                 icon: Symbols.download,
-                title: 'No downloads',
-                message: 'Videos you download show up here, and play without a connection.',
+                title: 'Žádná stažená videa',
+                message: 'Videa, která si stáhnete, se zobrazí zde a můžete je přehrávat i bez připojení k internetu.',
               )
             : ListView(
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
                     child: Text(
-                      '${all.length} video${all.length == 1 ? '' : 's'} · ${_size(used)}',
+                      '${all.length} ${all.length == 1 ? 'video' : all.length >= 2 && all.length <= 4 ? 'videa' : 'videí'} · ${_size(used)}',
                       style: TextStyle(color: c.textSecondary, fontSize: 13),
                     ),
                   ),
@@ -376,8 +377,8 @@ class DownloadsScreen extends ConsumerWidget {
                                 const SizedBox(height: 4),
                                 Text(
                                   d.row.state == DownloadState.queued
-                                      ? 'Waiting to download…'
-                                      : 'Downloading · ${_size(d.row.downloadedBytes)} of ${_size(d.row.sizeBytes)}',
+                                      ? 'Čeká na zahájení stahování…'
+                                      : 'Stahování · ${_size(d.row.downloadedBytes)} z ${_size(d.row.sizeBytes)}',
                                   style: YtText.meta.copyWith(color: c.textSecondary),
                                 ),
                               ],
@@ -385,7 +386,7 @@ class DownloadsScreen extends ConsumerWidget {
                             DownloadState.failed => InkWell(
                               onTap: () => _retry(ref, d),
                               child: Text(
-                                'Download failed. Tap to retry',
+                                'Stahování se nezdařilo. Klepnutím ho zopakujete.',
                                 style: YtText.meta.copyWith(color: YtColors.red),
                               ),
                             ),
