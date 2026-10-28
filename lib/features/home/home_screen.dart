@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -81,9 +82,12 @@ class HomeScreen extends ConsumerWidget {
                         hasScrollBody: false,
                         child: EmptyView(
                           icon: Symbols.search,
-                          title: 'Try searching to get started',
-                          message: 'Start watching videos to help us build a feed of videos you\'ll love.',
-                          action: FilledButton(onPressed: () => openSearch(context, ref), child: const Text('Search')),
+                          title: 'Začněte vyhledáváním',
+                          message: 'Začněte sledovat videa a my vám připravíme nabídku podle vašich zájmů.',
+                          action: FilledButton(
+                            onPressed: () => openSearch(context, ref),
+                            child: const Text('Hledat'),
+                          ),
                         ),
                       )
                     else
@@ -109,7 +113,7 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-/// Shown on a fresh install: Home is built on this device from what you watch and subscribe to.
+/// Zobrazuje se při první instalaci: nabídka se vytváří v tomto zařízení podle sledování a odběrů.
 class _StartCard extends ConsumerWidget {
   const _StartCard();
 
@@ -124,11 +128,14 @@ class _StartCard extends ConsumerWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Your feed, on this device', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+        const Text(
+          'Vaše nabídka videí v tomto zařízení',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
         const SizedBox(height: 6),
         Text(
-          'YouPipe builds Home from what you watch and the channels you subscribe to, all stored on this device. '
-          'Until then, here are popular videos.',
+          'YouPipe vytváří nabídku videí podle toho, co sledujete a které kanály odebíráte. '
+          'Vše se ukládá do tohoto zařízení. Do té doby vám nabízíme oblíbená videa.',
           style: TextStyle(color: context.yt.textSecondary, fontSize: 13),
         ),
       ],
