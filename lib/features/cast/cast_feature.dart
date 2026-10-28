@@ -1,3 +1,4 @@
+
 import 'dart:async';
 
 import 'package:audio_service/audio_service.dart';
@@ -13,7 +14,8 @@ import '../../ui/theme/yt_theme.dart';
 import '../../ui/widgets/common.dart';
 import '../../util/format.dart';
 
-/// Casting to Chromecast and DLNA TVs (docs/cast.md). The phone relays YouTube's muxed MP4, or the downloaded file.
+/// Odesílání videa do Chromecastu a televizí DLNA (docs/cast.md).
+/// Telefon předává televizi video YouTube nebo stažený soubor.
 final castControllerProvider = Provider<CastController>((ref) => CastController());
 
 final castStatusProvider = Provider<CastStatus>((ref) {
@@ -24,12 +26,11 @@ final castStatusProvider = Provider<CastStatus>((ref) {
   return status.value;
 });
 
-/// The receiver's latest player state.
+/// Aktuální stav přehrávače na připojeném zařízení.
 final remotePlayerProvider = StreamProvider<RemotePlayer>((ref) => ref.watch(castControllerProvider).player);
 
-/// Hands the current video to the receiver while connected and keeps the phone paused; continues the queue when
-/// the receiver finishes; and hands playback back to the phone (at the same spot) when casting stops.
-/// Watched from the app root.
+/// Předává aktuální video připojenému zařízení a pozastaví přehrávání v telefonu.
+/// Po skončení videa pokračuje ve frontě. Po odpojení vrátí přehrávání do telefonu.
 final castBridgeProvider = Provider<void>((ref) {
   final cast = ref.watch(castControllerProvider);
   String? loadedId;
@@ -59,7 +60,7 @@ final castBridgeProvider = Provider<void>((ref) {
       );
     } catch (e) {
       loadedId = null;
-      showGlobalSnack("Couldn't cast this video");
+      showGlobalSnack('Toto video se nepodařilo přehrát na televizi');
     }
   }
 
@@ -67,13 +68,13 @@ final castBridgeProvider = Provider<void>((ref) {
     if (next.connected && prev?.connected != true) {
       unawaited(loadCurrent());
     } else if (!next.connected && prev?.connected == true) {
-      // Back to the phone, where the TV left off (paused, like YouTube).
+      // Návrat k telefonu na místě, kde televize skončila.
       loadedId = null;
       final c = ref.read(playerServiceProvider).controller.value;
       if (lastPosition > Duration.zero) unawaited(c?.seekTo(lastPosition));
     }
   });
-  // A new video (next in queue, autoplay, a tap) goes to the receiver too.
+  // Nové video se předá také připojenému zařízení.
   ref.listen(playbackProvider.select((p) => p?.video.id), (_, _) => unawaited(loadCurrent()));
   ref.listen(playerControllerProvider, (_, c) {
     if (c != null && cast.status.value.connected) unawaited(c.pause());
@@ -88,7 +89,7 @@ final castBridgeProvider = Provider<void>((ref) {
   ref.onDispose(sub.cancel);
 });
 
-/// The Cast button: only shown when there's a device to cast to, or while casting.
+/// Tlačítko pro připojení k televizi.
 class CastButton extends ConsumerWidget {
   const CastButton({super.key, this.color});
 
@@ -99,7 +100,7 @@ class CastButton extends ConsumerWidget {
     final status = ref.watch(castStatusProvider);
     if (status.state == CastState.none) return const SizedBox.shrink();
     return IconButton(
-      tooltip: status.connected ? 'Casting to ${status.device ?? 'a device'}' : 'Cast',
+      tooltip: status.connected ? 'Přehrává se na zařízení ${status.device ?? 'zařízení'}' : 'Přehrát na jiném zařízení',
       icon: Icon(
         status.connected ? Symbols.cast_connected : Symbols.cast,
         color: color,
@@ -149,7 +150,7 @@ class _CastSheetState extends ConsumerState<_CastSheet> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                 child: Text(
-                  status.connected ? 'Casting to ${status.device ?? 'a device'}' : 'Select a device',
+                  status.connected ? 'Přehrává se na zařízení ${status.device ?? 'zařízení'}' : 'Vyberte zařízení',
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
                 ),
               ),
@@ -175,10 +176,10 @@ class _CastSheetState extends ConsumerState<_CastSheet> {
                   title: Text(device.name),
                   subtitle: Text(
                     device == connected
-                        ? (status.connected ? 'Connected' : 'Connecting…')
+                        ? (status.connected ? 'Připojeno' : 'Připojování…')
                         : device.kind == CastKind.chromecast
                         ? 'Chromecast'
-                        : 'Smart TV (DLNA)',
+                        : 'Chytrá televize (DLNA)',
                   ),
                   onTap: device == connected
                       ? null
@@ -190,8 +191,8 @@ class _CastSheetState extends ConsumerState<_CastSheet> {
               if (devices.isEmpty)
                 const ListTile(
                   leading: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
-                  title: Text('Looking for devices on your Wi-Fi…'),
-                  subtitle: Text('Your phone and TV need to be on the same Wi-Fi'),
+                  title: Text('Vyhledávám zařízení ve vaší Wi-Fi…'),
+                  subtitle: Text('Telefon i televize musí být připojené ke stejné Wi-Fi'),
                 ),
               if (connected != null)
                 Padding(
@@ -203,7 +204,7 @@ class _CastSheetState extends ConsumerState<_CastSheet> {
                         Navigator.of(context).pop();
                         cast.disconnect();
                       },
-                      child: const Text('Disconnect'),
+                      child: const Text('Odpojit'),
                     ),
                   ),
                 ),
@@ -216,7 +217,7 @@ class _CastSheetState extends ConsumerState<_CastSheet> {
   }
 }
 
-/// Play/pause/seek go to the receiver while casting.
+/// Ovládání přehrávání, pozastavení a posunu při přehrávání na televizi.
 class CastRemote implements RemoteControls {
   CastRemote(this._cast, this._player, this.deviceName);
 
@@ -248,11 +249,11 @@ RemoteControls? castRemoteOf(WidgetRef ref) {
   return CastRemote(
     ref.read(castControllerProvider),
     ref.watch(remotePlayerProvider).value,
-    status.device ?? 'your TV',
+    status.device ?? 'vaše televize',
   );
 }
 
-/// The player area while casting: the thumbnail, "Playing on …", and the receiver's controls.
+/// Obrazovka přehrávání na televizi: náhled videa, název zařízení a ovládání.
 Widget castingView(BuildContext context, WidgetRef ref, RemoteControls remote, VideoItem? video) {
   final total = remote.duration?.inMilliseconds ?? 0;
   return Stack(
@@ -265,7 +266,7 @@ Widget castingView(BuildContext context, WidgetRef ref, RemoteControls remote, V
         children: [
           const Icon(Symbols.cast_connected, color: Colors.white, fill: 1, size: 32),
           const SizedBox(height: 8),
-          Text('Playing on ${remote.deviceName}', style: const TextStyle(color: Colors.white, fontSize: 15)),
+          Text('Přehrává se na zařízení ${remote.deviceName}', style: const TextStyle(color: Colors.white, fontSize: 15)),
           const SizedBox(height: 4),
           IconButton(
             onPressed: remote.togglePlay,
