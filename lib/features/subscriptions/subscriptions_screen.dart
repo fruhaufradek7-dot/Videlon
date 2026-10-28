@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,12 +16,12 @@ import '../../ui/widgets/video_tiles.dart';
 enum _Filter { all, today, videos, shorts, continueWatching, unwatched }
 
 const _labels = {
-  _Filter.all: 'All',
-  _Filter.today: 'Today',
-  _Filter.videos: 'Videos',
-  _Filter.shorts: 'Shorts',
-  _Filter.continueWatching: 'Continue watching',
-  _Filter.unwatched: 'Unwatched',
+  _Filter.all: 'Vše',
+  _Filter.today: 'Dnes',
+  _Filter.videos: 'Videa',
+  _Filter.shorts: 'Krátká videa',
+  _Filter.continueWatching: 'Pokračovat ve sledování',
+  _Filter.unwatched: 'Nepřehraná',
 };
 
 class SubscriptionsScreen extends ConsumerStatefulWidget {
@@ -74,10 +75,10 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                   hasScrollBody: false,
                   child: EmptyView(
                     icon: Symbols.subscriptions,
-                    title: "Don't miss new videos",
+                    title: 'Nenechte si ujít nová videa',
                     message:
-                        'Subscribe to channels to see their latest videos here. Subscriptions are kept on this device.',
-                    action: FilledButton(onPressed: () => openSearch(context, ref), child: const Text('Find channels')),
+                        'Odebírejte kanály a jejich nejnovější videa se zobrazí zde. Odběry se ukládají v tomto zařízení.',
+                    action: FilledButton(onPressed: () => openSearch(context, ref), child: const Text('Najít kanály')),
                   ),
                 )
               else ...[
@@ -97,15 +98,15 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                     hasScrollBody: false,
                     child: EmptyView(
                       icon: Symbols.video_library,
-                      title: all.isEmpty ? 'Loading your subscriptions…' : 'Nothing here',
-                      message: all.isEmpty ? 'Pull down to refresh.' : 'Try another filter.',
+                      title: all.isEmpty ? 'Načítání vašich odběrů…' : 'Žádná videa',
+                      message: all.isEmpty ? 'Potáhněte dolů pro obnovení.' : 'Zkuste jiný filtr.',
                     ),
                   )
                 else if (_filter == _Filter.shorts)
                   SliverPadding(
                     padding: const EdgeInsets.all(8),
                     sliver: SliverGrid.builder(
-                      // 2 across on phones, more on tablets and TVs.
+                      // Na telefonech dva sloupce, na tabletech a televizorech více.
                       gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                         maxCrossAxisExtent: 220,
                         childAspectRatio: 9 / 16,
@@ -129,7 +130,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
   }
 }
 
-/// The row of channel avatars with "All" at the end.
+/// Vodorovný seznam avatarů kanálů s tlačítkem „Vše“ na konci.
 class _ChannelStrip extends ConsumerWidget {
   const _ChannelStrip({required this.channels});
 
@@ -170,14 +171,14 @@ class _ChannelStrip extends ConsumerWidget {
         TextButton(
           onPressed: () => context.push('${branchPrefix(context)}/channels'),
           style: TextButton.styleFrom(foregroundColor: context.yt.link),
-          child: const Text('All', style: TextStyle(fontWeight: FontWeight.w500)),
+          child: const Text('Vše', style: TextStyle(fontWeight: FontWeight.w500)),
         ),
       ],
     ),
   );
 }
 
-/// All subscriptions, A–Z, with Subscribe toggles.
+/// Všechny odběry seřazené podle abecedy s tlačítky pro správu odběrů.
 class ChannelsScreen extends ConsumerWidget {
   const ChannelsScreen({super.key});
 
@@ -188,13 +189,13 @@ class ChannelsScreen extends ConsumerWidget {
     final subs = ref.watch(subscriptionsProvider).value ?? const <ChannelItem>[];
     return Scaffold(
       appBar: AppBar(
-        title: const Text('All subscriptions'),
+        title: const Text('Všechny odběry'),
         leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Symbols.arrow_back)),
         actions: [for (final a in extraActions) a(context, ref)],
       ),
       body: MaxContentWidth(
         child: subs.isEmpty
-            ? const EmptyView(icon: Symbols.subscriptions, title: 'No subscriptions yet')
+            ? const EmptyView(icon: Symbols.subscriptions, title: 'Zatím nemáte žádné odběry')
             : ListView.builder(
                 itemCount: subs.length,
                 itemBuilder: (_, i) => ListTile(
