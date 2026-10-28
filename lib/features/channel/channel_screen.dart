@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,8 +12,19 @@ import '../../ui/widgets/common.dart';
 import '../../ui/widgets/html_text.dart';
 import '../../ui/widgets/video_tiles.dart';
 
-/// Tabs YouPipe can show (Posts, Store and channel search aren't supported).
+/// Záložky kanálu podporované aplikací.
 const _supportedTabs = {'Home', 'Videos', 'Shorts', 'Live', 'Releases', 'Playlists', 'Podcasts'};
+
+String _translatedTab(String title) => switch (title) {
+      'Home' => 'Domů',
+      'Videos' => 'Videa',
+      'Shorts' => 'Shorts',
+      'Live' => 'Živě',
+      'Releases' => 'Novinky',
+      'Playlists' => 'Playlisty',
+      'Podcasts' => 'Podcasty',
+      _ => title,
+    };
 
 class ChannelScreen extends ConsumerWidget {
   const ChannelScreen({super.key, required this.channelId});
@@ -29,7 +41,7 @@ class ChannelScreen extends ConsumerWidget {
         body: ErrorView(error: e, onRetry: () => ref.invalidate(channelProvider((channelId: channelId, params: null)))),
       ),
       data: (p) {
-        // Keep the channel's name and picture fresh in Subscriptions.
+        // Aktualizuje název a obrázek kanálu v odběrech.
         ref.read(libraryProvider).refreshSubscription(p.asItem);
         final tabs = p.tabs.where((t) => _supportedTabs.contains(t.title)).toList();
         return DefaultTabController(
@@ -54,7 +66,10 @@ class ChannelScreen extends ConsumerWidget {
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: _TabBarDelegate(
-                    TabBar(isScrollable: true, tabs: [for (final t in tabs) Tab(text: t.title)]),
+                    TabBar(
+                      isScrollable: true,
+                      tabs: [for (final t in tabs) Tab(text: _translatedTab(t.title))],
+                    ),
                     context.yt.background,
                   ),
                 ),
@@ -125,7 +140,7 @@ class _Header extends ConsumerWidget {
                     controller: scroll,
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                     children: [
-                      const Text('About', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+                      const Text('O kanálu', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 12),
                       HtmlText(page.description!, style: const TextStyle(fontSize: 14, height: 1.4)),
                     ],
@@ -220,8 +235,18 @@ class _TabContentState extends ConsumerState<_TabContent> with AutomaticKeepAliv
           padding: const EdgeInsets.all(32),
           child: Center(
             child: Text(
-              'This channel has no ${widget.tab.title.toLowerCase()}',
+              switch (widget.tab.title) {
+                'Home' => 'Tento kanál zatím nemá žádný obsah.',
+                'Videos' => 'Tento kanál zatím nemá žádná videa.',
+                'Shorts' => 'Tento kanál zatím nemá žádné Shorts.',
+                'Live' => 'Tento kanál zatím nemá žádná živá vysílání.',
+                'Releases' => 'Tento kanál zatím nemá žádné novinky.',
+                'Playlists' => 'Tento kanál zatím nemá žádné playlisty.',
+                'Podcasts' => 'Tento kanál zatím nemá žádné podcasty.',
+                _ => 'Tento kanál zatím nemá žádný obsah.',
+              },
               style: TextStyle(color: context.yt.textSecondary),
+              textAlign: TextAlign.center,
             ),
           ),
         ),
@@ -230,7 +255,7 @@ class _TabContentState extends ConsumerState<_TabContent> with AutomaticKeepAliv
       body = SliverPadding(
         padding: const EdgeInsets.all(4),
         sliver: SliverGrid.builder(
-          // 3 across on phones, more on tablets and TVs.
+          // Tři sloupce na telefonech, více na tabletech a televizorech.
           gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
             maxCrossAxisExtent: 150,
             childAspectRatio: 9 / 16,
