@@ -1,3 +1,4 @@
+
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -6,8 +7,9 @@ import '../innertube/innertube.dart';
 import 'library_repository.dart';
 import 'subscriptions_feed.dart';
 
-/// A Home chip. YouTube's own chips are personalised server-side, which signed-out YouTube no longer does, so
-/// YouPipe's are topic searches (docs/phase0.md).
+/// Filtr na domovské stránce. Filtry YouTube jsou personalizované na straně serveru.
+/// Odhlášeným uživatelům už YouTube tuto funkci neposkytuje, proto YouPipe používá
+/// vyhledávání podle témat (docs/phase0.md).
 @immutable
 class HomeChip {
   const HomeChip(this.label, {this.query, this.params, this.kind = HomeChipKind.search});
@@ -17,20 +19,20 @@ class HomeChip {
   final String? params;
   final HomeChipKind kind;
 
-  static const all = HomeChip('All', kind: HomeChipKind.all);
+  static const all = HomeChip('Vše', kind: HomeChipKind.all);
 
   static final defaults = [
     all,
-    const HomeChip('Music', query: 'music'),
-    const HomeChip('Gaming', query: 'gaming'),
-    HomeChip('Live', query: 'live', params: SearchFilter.live.params),
-    const HomeChip('News', query: 'news today'),
-    const HomeChip('Podcasts', query: 'podcast'),
-    const HomeChip('Sports', query: 'sports highlights'),
-    const HomeChip('Comedy', query: 'comedy'),
-    const HomeChip('Cooking', query: 'cooking recipes'),
-    const HomeChip('Science', query: 'science'),
-    const HomeChip('Recently uploaded', kind: HomeChipKind.subscriptions),
+    const HomeChip('Hudba', query: 'music'),
+    const HomeChip('Hry', query: 'gaming'),
+    HomeChip('Živě', query: 'live', params: SearchFilter.live.params),
+    const HomeChip('Zprávy', query: 'news today'),
+    const HomeChip('Podcasty', query: 'podcast'),
+    const HomeChip('Sport', query: 'sports highlights'),
+    const HomeChip('Komedie', query: 'comedy'),
+    const HomeChip('Vaření', query: 'cooking recipes'),
+    const HomeChip('Věda', query: 'science'),
+    const HomeChip('Nově nahraná videa', kind: HomeChipKind.subscriptions),
   ];
 
   @override
@@ -42,11 +44,12 @@ class HomeChip {
 
 enum HomeChipKind { all, search, subscriptions }
 
-/// Where Home items come from. Each source pages on its own; [HomeMixer] interleaves them.
+/// Zdroj videí pro domovskou stránku. Každý zdroj načítá další stránky samostatně;
+/// [HomeMixer] jejich výsledky vzájemně prokládá.
 abstract class _Source {
   _Source(this.weight);
 
-  /// Items taken from this source per round.
+  /// Počet položek načtených z tohoto zdroje v jednom kole.
   final int weight;
   bool done = false;
   final _buffer = <VideoItem>[];
@@ -62,7 +65,7 @@ abstract class _Source {
         if (items.isEmpty) done = true;
         _buffer.addAll(items);
       } catch (e) {
-        debugPrint('YouPipe: home source failed: $e');
+        debugPrint('YouPipe: načtení zdroje domovské stránky selhalo: $e');
         done = true;
       }
     }();
@@ -125,7 +128,7 @@ class _SearchSource extends _Source {
   }
 }
 
-/// The signed-in account's own Home (YouTube's recommendations), with continuations.
+/// Zdroj domovské stránky přihlášeného účtu YouTube včetně dalších načítaných stránek.
 class _AccountHomeSource extends _Source {
   _AccountHomeSource(this.yt) : super(3);
 
@@ -164,8 +167,9 @@ class _ListSource extends _Source {
   }
 }
 
-/// Builds the signed-out Home: related videos of recent history, unwatched subscription uploads, and topic searches
-/// when there's nothing personal yet (docs/data.md).
+/// Sestavuje domovskou stránku pro odhlášené uživatele: související videa z nedávné
+/// historie, nepřehraná videa z odběrů a tematická vyhledávání, pokud zatím nejsou
+/// k dispozici osobní doporučení (docs/data.md).
 class HomeMixer {
   HomeMixer._(this._sources, this._exclude);
 
@@ -182,7 +186,7 @@ class HomeMixer {
     required List<FeedVideo> subscriptionFeed,
   }) async {
     final history = await library.watchHistory(limit: 200).first;
-    // Finished videos don't come back; half-watched ones may.
+    // Dokoukaná videa se znovu nezobrazí; nedokoukaná se zobrazit mohou.
     final finished = {
       for (final h in history)
         if (h.progress > 0.9) h.video.id,
@@ -206,7 +210,8 @@ class HomeMixer {
         ].take(6);
         sources.addAll([for (final s in seeds) _RelatedSource(yt, s)]);
         if (recentUploads.isNotEmpty) sources.insert(sources.isEmpty ? 0 : 1, _ListSource(recentUploads));
-        // Something to discover even with history; the whole feed when there's nothing personal yet.
+        // I při existující historii nabídnout něco nového; bez osobních údajů zobrazit
+        // širší výběr doporučení.
         final personal = sources.isNotEmpty;
         final topics = [..._discover]..shuffle();
         for (final q in topics.take(personal ? 1 : 4)) {
@@ -214,14 +219,14 @@ class HomeMixer {
         }
     }
     final mixer = HomeMixer._(sources, finished);
-    // Start every source at once so the first page arrives as fast as the slowest single request.
+    // Spustit všechny zdroje současně, aby se první stránka načetla co nejrychleji.
     await Future.wait(sources.map((s) => s.ensure()));
     return mixer;
   }
 
   bool get hasMore => _sources.any((s) => !s.done || s._buffer.isNotEmpty);
 
-  /// The next [count] items, round-robin by weight across sources, without repeats.
+  /// Vrátí dalších [count] položek, střídavě podle váhy zdrojů a bez opakování.
   Future<List<VideoItem>> next(int count) async {
     final out = <VideoItem>[];
     var stalled = 0;
