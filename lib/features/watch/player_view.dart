@@ -1,3 +1,4 @@
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -16,7 +17,7 @@ import '../../util/format.dart';
 import 'player_settings.dart';
 import 'seek_bar.dart';
 
-/// Just the video picture, letterboxed in black (also used by the mini player and PiP).
+/// Samotný obraz videa s černými pruhy po stranách (používá ho také mini přehrávač a režim PiP).
 class VideoSurface extends ConsumerWidget {
   const VideoSurface({super.key, this.fit = BoxFit.contain});
 
@@ -49,7 +50,7 @@ class VideoSurface extends ConsumerWidget {
   }
 }
 
-/// The player with YouTube's controls.
+/// Přehrávač s ovládacími prvky ve stylu YouTube.
 class PlayerView extends ConsumerStatefulWidget {
   const PlayerView({super.key, required this.onMinimize, this.fullscreen = false});
 
@@ -60,26 +61,26 @@ class PlayerView extends ConsumerStatefulWidget {
   ConsumerState<PlayerView> createState() => _PlayerViewState();
 }
 
-/// Set by the cast feature: what the player area shows while casting.
+/// Nastavuje funkce přehrávače během přehrávání na jiném zařízení.
 Widget Function(BuildContext context, WidgetRef ref, RemoteControls remote, VideoItem? video)? castingViewBuilder;
 
-/// The Cast button for the player's top row (set by the cast feature).
+/// Tlačítko pro přehrávání na jiném zařízení v horní liště přehrávače.
 Widget Function()? playerCastButton;
 
 class _PlayerViewState extends ConsumerState<PlayerView> {
   bool _visible = true;
   Timer? _hide;
-  // Double-tap seek feedback.
+  // Zobrazení při posunu videa dvojitým klepnutím.
   int _seekSide = 0;
   int _seekSeconds = 0;
   Timer? _seekReset;
   bool _boost = false;
 
-  /// A short message over the video ("Autoplay is on"), like YouTube's.
+  /// Krátká zpráva přes video (například „Automatické přehrávání je zapnuté“).
   String? _flash;
   Timer? _flashReset;
 
-  /// The player itself, focused while its controls are hidden (TV remote, keyboards); see [_onKey].
+  /// Samotný přehrávač získává fokus, když jsou ovládací prvky skryté (ovladač TV, klávesnice).
   final _playerFocus = FocusNode(debugLabel: 'player');
   final _playPauseFocus = FocusNode(debugLabel: 'play/pause');
 
@@ -104,14 +105,14 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
     _hide = Timer(const Duration(seconds: 3), () {
       final c = ref.read(playerControllerProvider);
       if (!mounted || !(c?.value.isPlaying ?? false)) return;
-      // A control with focus is about to be hidden: give focus back to the player, so the remote keeps working.
+      // Před skrytím ovládacích prvků se fokus vrátí přehrávači, aby dál fungoval ovladač.
       final inControls = _playerFocus.hasFocus && !_playerFocus.hasPrimaryFocus;
       setState(() => _visible = false);
       if (inControls) _playerFocus.requestFocus();
     });
   }
 
-  /// Shows the controls with play/pause focused (once they're focusable again, after this frame).
+  /// Zobrazí ovládací prvky a zaměří tlačítko přehrávání.
   void _showControls() {
     setState(() => _visible = true);
     _scheduleHide();
@@ -134,9 +135,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
     _scheduleHide();
   }
 
-  /// The remote and keyboards (docs/ui.md). Media keys always work. While the player itself has focus (controls
-  /// hidden): Select shows the controls, Left/Right seek 10 s, Up (and Down in fullscreen) show the controls; Down
-  /// on the watch page moves on to the details. While a control has focus, any key keeps the controls up.
+  /// Ovládání dálkovým ovladačem a klávesnicí. Mediální klávesy fungují vždy.
   KeyEventResult _onKey(FocusNode node, KeyEvent e) {
     if (e is KeyUpEvent) return KeyEventResult.ignored;
     final key = e.logicalKey;
@@ -183,18 +182,18 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
     });
   }
 
-  /// YouTube's Autoplay switch in the player (docs/playback.md); off also cancels a running countdown.
+  /// Přepínač automatického přehrávání; vypnutí zruší také probíhající odpočet.
   void _toggleAutoplay() {
     final s = ref.read(settingsProvider);
     ref.read(settingsProvider.notifier).update(s.copyWith(autoplay: !s.autoplay));
     if (s.autoplay) ref.read(upNextCountdownProvider.notifier).cancel();
-    _showFlash(s.autoplay ? 'Autoplay is off' : 'Autoplay is on');
+    _showFlash(s.autoplay ? 'Automatické přehrávání je vypnuté' : 'Automatické přehrávání je zapnuté');
     _scheduleHide();
   }
 
   void _doubleTap(TapDownDetails d, double width) => _seekStep(d.localPosition.dx < width / 2 ? -1 : 1);
 
-  /// Seeks 10 s back (-1) or forward (1), with YouTube's ripple counting up on repeats.
+  /// Posune video o 10 sekund zpět (-1) nebo vpřed (1).
   void _seekStep(int side) {
     final c = ref.read(playerControllerProvider);
     if (c == null) return;
@@ -219,11 +218,10 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
     final c = ref.watch(playerControllerProvider);
     final error = ref.watch(playerErrorProvider);
     final countdown = ref.watch(upNextCountdownProvider);
-    // A cancelled countdown leaves the ended video with its controls (and replay button) showing, like YouTube.
+    // Po zrušení odpočtu zůstane dokončené video s ovládacími prvky a tlačítkem opakování.
     ref.listen(upNextCountdownProvider, (before, now) {
       if (before == null && now != null) {
-        // The card hides the controls: a control with focus hands it to the player first, so excluding the controls
-        // doesn't drop focus over the card's Play now request (seen on the TV).
+        // Karta dalšího videa převezme fokus, aby ovládání fungovalo i na televizoru.
         if (_playerFocus.hasFocus && !_playerFocus.hasPrimaryFocus) _playerFocus.requestFocus();
         return;
       }
@@ -231,18 +229,15 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
       if (ref.read(playerControllerProvider)?.value.isCompleted ?? false) {
         _showControls();
       } else if (DeviceInfo.current.tv) {
-        // The next video started: the remote's focus goes back to the player (Play now has gone).
+        // Začalo další video, fokus se vrátí přehrávači.
         _playerFocus.requestFocus();
       }
     });
-    // The Up next card covers the controls.
+    // Karta dalšího videa překrývá ovládací prvky.
     final controlsShown = _visible && countdown == null;
     return Focus(
       focusNode: _playerFocus,
-      // On a TV (and in fullscreen) the player takes focus, so the remote controls it straight away.
       autofocus: widget.fullscreen || DeviceInfo.current.tv,
-      // Under the Up next card the arrows move between its buttons only (the player, as wide as the screen, is
-      // otherwise the nearest thing to the left of Play now).
       skipTraversal: countdown != null,
       onKeyEvent: _onKey,
       child: LayoutBuilder(
@@ -251,7 +246,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
           onTap: _toggle,
           onDoubleTapDown: (d) => _doubleTap(d, box.maxWidth),
           onDoubleTap: () {},
-          // Hold for 2x speed, like YouTube.
+          // Podržením se rychlost zvýší na 2×.
           onLongPressStart: (_) {
             final v = c?.value;
             if (v == null || !v.isPlaying) return;
@@ -290,7 +285,6 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
                       AnimatedOpacity(
                         opacity: controlsShown ? 1 : 0,
                         duration: const Duration(milliseconds: 200),
-                        // Hidden controls take neither taps nor focus.
                         child: IgnorePointer(
                           ignoring: !controlsShown,
                           child: ExcludeFocus(excluding: !controlsShown, child: _controls(c, v)),
@@ -304,13 +298,12 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
               if (_seekSide != 0) _SeekRipple(side: _seekSide, seconds: _seekSeconds),
               if (_boost || _flash != null)
                 Positioned(
-                  // Below the top row while the controls show.
                   top: _visible ? 56 : 12,
                   left: 0,
                   right: 0,
                   child: Center(
                     child: _Pill(
-                      child: Text(_flash ?? '2x  ▶▶', style: const TextStyle(color: Colors.white)),
+                      child: Text(_flash ?? '2×  ▶▶', style: const TextStyle(color: Colors.white)),
                     ),
                   ),
                 ),
@@ -421,7 +414,7 @@ class _PlayerViewState extends ConsumerState<PlayerView> {
                           Icon(Icons.circle, size: 8, color: YtColors.red),
                           SizedBox(width: 6),
                           Text(
-                            'LIVE',
+                            'ŽIVĚ',
                             style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
                           ),
                         ],
@@ -469,7 +462,7 @@ class _IconBtn extends StatelessWidget {
   );
 }
 
-/// YouTube's Autoplay switch: a small track with a play (on) or pause (off) thumb.
+/// Přepínač automatického přehrávání: symbol přehrávání při zapnutí a pauzy při vypnutí.
 class _AutoplaySwitch extends StatelessWidget {
   const _AutoplaySwitch({required this.on, required this.onTap});
 
@@ -480,7 +473,7 @@ class _AutoplaySwitch extends StatelessWidget {
   Widget build(BuildContext context) => FocusHighlight(
     radius: 24,
     child: Semantics(
-      label: 'Autoplay',
+      label: 'Automatické přehrávání',
       toggled: on,
       child: InkResponse(
         onTap: onTap,
@@ -525,7 +518,7 @@ class _AutoplaySwitch extends StatelessWidget {
   );
 }
 
-/// The end-of-video "Up next" card with its countdown, Cancel and Play now (docs/playback.md).
+/// Karta s následujícím videem na konci přehrávání, odpočtem a tlačítky.
 class _UpNextOverlay extends ConsumerStatefulWidget {
   const _UpNextOverlay({required this.countdown});
 
@@ -543,7 +536,7 @@ class _UpNextOverlayState extends ConsumerState<_UpNextOverlay> with SingleTicke
   void initState() {
     super.initState();
     _sync();
-    // The remote lands on Play now, like YouTube for TV (autofocus wouldn't: the player already has focus).
+    // Na televizoru se fokus přesune na tlačítko Přehrát nyní.
     if (DeviceInfo.current.tv) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _playNow.requestFocus();
@@ -557,7 +550,7 @@ class _UpNextOverlayState extends ConsumerState<_UpNextOverlay> with SingleTicke
     if (old.countdown != widget.countdown) _sync();
   }
 
-  /// Runs the ring from wherever the countdown is now (it may have started before this player was built).
+  /// Spustí animaci podle aktuálního stavu odpočtu.
   void _sync() {
     final total = UpNextCountdownController.length.inMilliseconds;
     final left = widget.countdown.startsAt.difference(DateTime.now()).inMilliseconds.clamp(0, total);
@@ -578,7 +571,7 @@ class _UpNextOverlayState extends ConsumerState<_UpNextOverlay> with SingleTicke
     final video = widget.countdown.video;
     final countdown = ref.read(upNextCountdownProvider.notifier);
     const white70 = TextStyle(color: Colors.white70, fontSize: 12);
-    // Blocks taps from reaching the player underneath.
+    // Zabraňuje tomu, aby klepnutí ovládalo přehrávač pod kartou.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {},
@@ -598,7 +591,7 @@ class _UpNextOverlayState extends ConsumerState<_UpNextOverlay> with SingleTicke
                       animation: _ring,
                       builder: (context, _) {
                         final seconds = ((1 - _ring.value) * UpNextCountdownController.length.inSeconds).ceil();
-                        return Text('Up next in $seconds', style: white70);
+                        return Text('Další video za $seconds s', style: white70);
                       },
                     ),
                     const SizedBox(height: 6),
@@ -622,7 +615,7 @@ class _UpNextOverlayState extends ConsumerState<_UpNextOverlay> with SingleTicke
                           child: TextButton(
                             onPressed: countdown.cancel,
                             style: TextButton.styleFrom(foregroundColor: Colors.white),
-                            child: const Text('Cancel'),
+                            child: const Text('Zrušit'),
                           ),
                         ),
                         const SizedBox(width: 24),
@@ -711,7 +704,7 @@ class _SeekRipple extends StatelessWidget {
           children: [
             Icon(side < 0 ? Symbols.fast_rewind : Symbols.fast_forward, color: Colors.white, fill: 1),
             const SizedBox(height: 4),
-            Text('$seconds seconds', style: const TextStyle(color: Colors.white, fontSize: 12)),
+            Text('$seconds s', style: const TextStyle(color: Colors.white, fontSize: 12)),
           ],
         ),
       ),
@@ -726,7 +719,7 @@ class _ErrorOverlay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final message = error is VideoUnavailable ? (error as VideoUnavailable).friendly : 'Something went wrong';
+    final message = error is VideoUnavailable ? (error as VideoUnavailable).friendly : 'Něco se pokazilo';
     return ColoredBox(
       color: Colors.black87,
       child: Center(
@@ -749,7 +742,7 @@ class _ErrorOverlay extends ConsumerWidget {
                 final s = ref.read(playbackProvider);
                 if (s != null) ref.read(playbackProvider.notifier).play(s.video, queue: s.queue, index: s.index);
               },
-              child: const Text('Tap to retry', style: TextStyle(color: Colors.white)),
+              child: const Text('Klepnutím to zkusíte znovu', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
