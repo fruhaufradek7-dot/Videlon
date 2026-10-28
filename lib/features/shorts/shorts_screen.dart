@@ -1,3 +1,4 @@
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -21,13 +22,13 @@ import '../../util/format.dart';
 import '../watch/watch_details.dart';
 import '../../player/playback_proxy.dart';
 
-/// Shorts: a vertical pager over the Shorts feed (`reel/reel_watch_sequence`), optionally starting at [startId].
+/// Krátká videa s vertikálním posouváním; volitelně začínají videem [startId].
 class ShortsScreen extends ConsumerStatefulWidget {
   const ShortsScreen({super.key, this.startId, this.isTab = true});
 
   final String? startId;
 
-  /// The Shorts tab (no back button) or a Short opened from a card.
+  /// Karta Krátká videa (bez tlačítka zpět), nebo krátké video otevřené z náhledu.
   final bool isTab;
 
   @override
@@ -41,7 +42,7 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
   int _index = 0;
   Object? _error;
 
-  /// Turns pages for the TV remote's Up/Down (touch swipes the PageView directly).
+  /// Ovládání přechodu mezi videi tlačítky nahoru a dolů na dálkovém ovladači.
   final _pages = PageController();
 
   @override
@@ -84,16 +85,15 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Only the visible Shorts page plays; the tab is kept alive in the background by the shell.
+    // Přehrává se pouze viditelné video; karta zůstává na pozadí zachována.
     final route = ModalRoute.of(context);
     final visible = route?.isCurrent ?? true;
-    // A hidden tab has its tickers off, and this rebuilds when that changes. Riverpod pauses an offstage widget's
-    // listeners, so currentTabProvider alone never reached it: Back from Shorts kept the Short playing on Home.
+    // Skrytá karta má vypnuté animace. Tato kontrola zabrání přehrávání na pozadí.
     final onScreen = TickerMode.valuesOf(context).enabled;
     final tabActive = !widget.isTab || ref.watch(currentTabProvider) == 1;
     final active = visible && onScreen && tabActive && !ref.watch(playerPanelProvider);
     if (active) {
-      // Shorts take over the sound: pause the main video.
+      // Krátká videa převezmou zvuk: hlavní video se pozastaví.
       ref.read(playerServiceProvider).controller.value?.pause();
     }
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -103,70 +103,85 @@ class _ShortsScreenState extends ConsumerState<ShortsScreen> {
         body: _error != null
             ? ErrorView(error: _error!, onRetry: _more)
             : _ids.isEmpty
-            ? const Center(child: CircularProgressIndicator(color: Colors.white))
-            : Stack(
-                children: [
-                  PageView.builder(
-                    controller: _pages,
-                    scrollDirection: Axis.vertical,
-                    itemCount: _ids.length,
-                    onPageChanged: (i) {
-                      setState(() => _index = i);
-                      if (i > _ids.length - 4) _more();
-                    },
-                    itemBuilder: (context, i) {
-                      final page = _ShortPage(
-                        key: ValueKey(_ids[i]),
-                        videoId: _ids[i],
-                        playing: active && i == _index,
-                        preload: (i - _index).abs() <= 1,
-                        onStep: _step,
-                      );
-                      // Landscape (tablets, TVs): a centred 9:16 column, like YouTube, instead of a cropped band.
-                      final size = MediaQuery.sizeOf(context);
-                      return size.width > size.height
-                          ? Center(
-                              child: AspectRatio(aspectRatio: 9 / 16, child: page),
-                            )
-                          : page;
-                    },
-                  ),
-                  // Top shade, like YouTube: the clock, status icons and search stay visible over a bright video.
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: MediaQuery.paddingOf(context).top + 72,
-                    child: const IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Color(0x80000000), Colors.transparent],
+                ? const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  )
+                : Stack(
+                    children: [
+                      PageView.builder(
+                        controller: _pages,
+                        scrollDirection: Axis.vertical,
+                        itemCount: _ids.length,
+                        onPageChanged: (i) {
+                          setState(() => _index = i);
+                          if (i > _ids.length - 4) _more();
+                        },
+                        itemBuilder: (context, i) {
+                          final page = _ShortPage(
+                            key: ValueKey(_ids[i]),
+                            videoId: _ids[i],
+                            playing: active && i == _index,
+                            preload: (i - _index).abs() <= 1,
+                            onStep: _step,
+                          );
+                          // Na šířku se video zobrazí uprostřed v poměru 9:16.
+                          final size = MediaQuery.sizeOf(context);
+                          return size.width > size.height
+                              ? Center(
+                                  child: AspectRatio(
+                                    aspectRatio: 9 / 16,
+                                    child: page,
+                                  ),
+                                )
+                              : page;
+                        },
+                      ),
+                      // Stín nahoře zajišťuje čitelnost stavových ikon i nad světlým videem.
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: MediaQuery.paddingOf(context).top + 72,
+                        child: const IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Color(0x80000000),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                  SafeArea(
-                    child: Row(
-                      children: [
-                        if (!widget.isTab)
-                          IconButton(
-                            onPressed: () => context.pop(),
-                            icon: const Icon(Symbols.arrow_back, color: Colors.white),
-                          ),
-                        const Spacer(),
-                        IconButton(
-                          onPressed: () => openSearch(context, ref),
-                          icon: const Icon(Symbols.search, color: Colors.white, weight: 300),
+                      SafeArea(
+                        child: Row(
+                          children: [
+                            if (!widget.isTab)
+                              IconButton(
+                                onPressed: () => context.pop(),
+                                icon: const Icon(
+                                  Symbols.arrow_back,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            const Spacer(),
+                            IconButton(
+                              onPressed: () => openSearch(context, ref),
+                              icon: const Icon(
+                                Symbols.search,
+                                color: Colors.white,
+                                weight: 300,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
       ),
     );
   }
@@ -185,7 +200,7 @@ class _ShortPage extends ConsumerStatefulWidget {
   final bool playing;
   final bool preload;
 
-  /// The remote's Up/Down on the video: the previous or next Short.
+  /// Přechod na předchozí nebo následující video pomocí dálkového ovladače.
   final ValueChanged<int> onStep;
 
   @override
@@ -199,7 +214,7 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
   bool _opening = false;
   bool _recorded = false;
 
-  /// The video, focused on a TV (and after paging with the remote), so Select and Up/Down reach it.
+  /// Ovládání videa pomocí dálkového ovladače.
   final _videoFocus = FocusNode(debugLabel: 'short');
 
   @override
@@ -213,16 +228,21 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
     super.didUpdateWidget(oldWidget);
     if (widget.preload && _c == null) _open();
     _apply();
-    // Paging with the remote: focus follows to the Short that just came on screen.
-    if (widget.playing && !oldWidget.playing && FocusManager.instance.highlightMode == FocusHighlightMode.traditional) {
+    // Při přechodu dálkovým ovladačem se přesune výběr na právě zobrazené video.
+    if (widget.playing &&
+        !oldWidget.playing &&
+        FocusManager.instance.highlightMode == FocusHighlightMode.traditional) {
       _videoFocus.requestFocus();
     }
   }
 
   KeyEventResult _onKey(FocusNode node, KeyEvent e) {
-    if (e is KeyUpEvent || !node.hasPrimaryFocus) return KeyEventResult.ignored;
+    if (e is KeyUpEvent || !node.hasPrimaryFocus) {
+      return KeyEventResult.ignored;
+    }
     final key = e.logicalKey;
-    if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.arrowUp) {
+    if (key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.arrowUp) {
       widget.onStep(key == LogicalKeyboardKey.arrowDown ? 1 : -1);
       return KeyEventResult.handled;
     }
@@ -250,20 +270,22 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
 
   void _record() {
     final i = _info;
-    if (_recorded || i == null || !ref.read(settingsProvider).saveHistory) return;
+    if (_recorded || i == null || !ref.read(settingsProvider).saveHistory) {
+      return;
+    }
     _recorded = true;
     unawaited(ref.read(libraryProvider).recordWatch(_asItem(i)));
   }
 
   VideoItem _asItem(VideoInfo i) => VideoItem(
-    id: i.videoId,
-    title: i.title,
-    channelName: i.channelName,
-    channelId: i.channelId,
-    channelAvatar: i.channelAvatar,
-    viewsText: i.viewCount >= 0 ? viewsLabel(i.viewCount) : null,
-    isShort: true,
-  );
+        id: i.videoId,
+        title: i.title,
+        channelName: i.channelName,
+        channelId: i.channelId,
+        channelAvatar: i.channelAvatar,
+        viewsText: i.viewCount >= 0 ? viewsLabel(i.viewCount) : null,
+        isShort: true,
+      );
 
   Future<void> _open() async {
     if (_opening) return;
@@ -271,12 +293,14 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
     try {
       final info = await ref.read(videoInfoServiceProvider).get(widget.videoId);
       final dash = info.manifestPath != null;
-      // Without a manifest, the progressive stream goes through the loopback relay (full speed, docs/streaming.md).
+      // Bez manifestu se video načítá přes místní přenosový server.
       final muxed = dash ? null : await PlaybackProxy.uriFor(info.muxedUrl!);
       final c = VideoPlayerController.networkUrl(
         dash ? Uri.file(info.manifestPath!) : (muxed ?? Uri.parse(info.muxedUrl!)),
         formatHint: dash ? VideoFormat.dash : null,
-        httpHeaders: {'User-Agent': dash ? info.dashUserAgent : info.muxedUserAgent},
+        httpHeaders: {
+          'User-Agent': dash ? info.dashUserAgent : info.muxedUserAgent,
+        },
       );
       await c.initialize();
       await c.setLooping(true);
@@ -314,27 +338,44 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
         children: [
           if (c != null)
             GestureDetector(
-              onTap: () => setState(() => c.value.isPlaying ? c.pause() : c.play()),
+              onTap: () => setState(
+                () => c.value.isPlaying ? c.pause() : c.play(),
+              ),
               child: FittedBox(
-                fit: c.value.aspectRatio < 0.7 ? BoxFit.cover : BoxFit.contain,
-                child: SizedBox(width: c.value.size.width, height: c.value.size.height, child: VideoPlayer(c)),
+                fit: c.value.aspectRatio < 0.7
+                    ? BoxFit.cover
+                    : BoxFit.contain,
+                child: SizedBox(
+                  width: c.value.size.width,
+                  height: c.value.size.height,
+                  child: VideoPlayer(c),
+                ),
               ),
             )
           else
             Stack(
               fit: StackFit.expand,
               children: [
-                YtImage('https://i.ytimg.com/vi/${widget.videoId}/oar2.jpg', fit: BoxFit.cover),
+                YtImage(
+                  'https://i.ytimg.com/vi/${widget.videoId}/oar2.jpg',
+                  fit: BoxFit.cover,
+                ),
                 Center(
                   child: _error != null
                       ? Container(
                           margin: const EdgeInsets.symmetric(horizontal: 32),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                           child: Text(
                             _error is VideoUnavailable
                                 ? (_error as VideoUnavailable).friendly
-                                : 'Couldn\'t load this Short',
+                                : 'Toto krátké video se nepodařilo načíst',
                             textAlign: TextAlign.center,
                             style: const TextStyle(color: Colors.white),
                           ),
@@ -345,16 +386,26 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
             ),
           if (c != null && !c.value.isPlaying && widget.playing)
             const IgnorePointer(
-              child: Center(child: Icon(Symbols.play_arrow, size: 72, fill: 1, color: Colors.white70)),
+              child: Center(
+                child: Icon(
+                  Symbols.play_arrow,
+                  size: 72,
+                  fill: 1,
+                  color: Colors.white70,
+                ),
+              ),
             ),
-          // Bottom shade so the text stays readable.
+          // Stín dole zajišťuje čitelnost textu.
           const IgnorePointer(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment(0, 0.3),
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Color(0x99000000)],
+                  colors: [
+                    Colors.transparent,
+                    Color(0x99000000),
+                  ],
                 ),
               ),
             ),
@@ -365,7 +416,12 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
               bottom: 72,
               child: _Rail(info: info, item: _asItem(info)),
             ),
-            Positioned(left: 12, right: 72, bottom: 20, child: _Meta(info: info)),
+            Positioned(
+              left: 12,
+              right: 72,
+              bottom: 20,
+              child: _Meta(info: info),
+            ),
           ],
           if (c != null)
             Positioned(
@@ -376,7 +432,10 @@ class _ShortPageState extends ConsumerState<_ShortPage> {
                 c,
                 allowScrubbing: true,
                 padding: EdgeInsets.zero,
-                colors: const VideoProgressColors(playedColor: Colors.white, backgroundColor: Colors.white24),
+                colors: const VideoProgressColors(
+                  playedColor: Colors.white,
+                  backgroundColor: Colors.white24,
+                ),
               ),
             ),
         ],
@@ -396,60 +455,104 @@ class _Rail extends ConsumerWidget {
     final liked = ref.watch(isLikedProvider(info.videoId)).value ?? false;
     final votes = ref.watch(votesProvider(info.videoId)).value;
     final likes = info.likeCount >= 0 ? info.likeCount : votes?.likes;
-    Widget action(IconData icon, String label, VoidCallback onTap, {bool filled = true}) => Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: FocusHighlight(
-        radius: 24,
-        child: InkWell(
-          customBorder: const StadiumBorder(),
-          onTap: onTap,
-          child: Column(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                // Dark, like YouTube: a white circle washed out over bright videos.
-                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.3), shape: BoxShape.circle),
-                child: Icon(icon, color: Colors.white, fill: filled ? 1 : 0, size: 26),
+
+    Widget action(
+      IconData icon,
+      String label,
+      VoidCallback onTap, {
+      bool filled = true,
+    }) =>
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: FocusHighlight(
+            radius: 24,
+            child: InkWell(
+              customBorder: const StadiumBorder(),
+              onTap: onTap,
+              child: Column(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    // Tmavé pozadí udržuje tlačítka čitelná i nad světlým videem.
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      icon,
+                      color: Colors.white,
+                      fill: filled ? 1 : 0,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      shadows: [Shadow(blurRadius: 4)],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  shadows: [Shadow(blurRadius: 4)],
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
+        );
+
     return Column(
       children: [
-        action(Symbols.thumb_up, likes == null ? 'Like' : compactCount(likes + (liked ? 1 : 0)), () {
-          ref.read(libraryProvider).setLiked(item, !liked);
-        }, filled: liked),
-        action(Symbols.thumb_down, votes == null ? 'Dislike' : compactCount(votes.dislikes), () {}, filled: false),
-        action(Symbols.comment, 'Comments', () => _showComments(context, info.videoId)),
-        action(Symbols.share, 'Share', () => shareVideo(item)),
-        action(Symbols.more_horiz, '', () => showVideoMenu(context, ref, item)),
+        action(
+          Symbols.thumb_up,
+          likes == null
+              ? 'To se mi líbí'
+              : compactCount(likes + (liked ? 1 : 0)),
+          () {
+            ref.read(libraryProvider).setLiked(item, !liked);
+          },
+          filled: liked,
+        ),
+        action(
+          Symbols.thumb_down,
+          votes == null ? 'Nelíbí se mi' : compactCount(votes.dislikes),
+          () {},
+          filled: false,
+        ),
+        action(
+          Symbols.comment,
+          'Komentáře',
+          () => _showComments(context, info.videoId),
+        ),
+        action(
+          Symbols.share,
+          'Sdílet',
+          () => shareVideo(item),
+        ),
+        action(
+          Symbols.more_horiz,
+          '',
+          () => showVideoMenu(context, ref, item),
+        ),
       ],
     );
   }
 
-  void _showComments(BuildContext context, String videoId) => showModalBottomSheet<void>(
-    context: context,
-    useRootNavigator: true,
-    isScrollControlled: true,
-    showDragHandle: false,
-    builder: (sheet) => SizedBox(
-      height: MediaQuery.sizeOf(context).height * 0.7,
-      child: CommentsPanel(videoId: videoId, onClose: () => Navigator.of(sheet).pop()),
-    ),
-  );
+  void _showComments(BuildContext context, String videoId) =>
+      showModalBottomSheet<void>(
+        context: context,
+        useRootNavigator: true,
+        isScrollControlled: true,
+        showDragHandle: false,
+        builder: (sheet) => SizedBox(
+          height: MediaQuery.sizeOf(context).height * 0.7,
+          child: CommentsPanel(
+            videoId: videoId,
+            onClose: () => Navigator.of(sheet).pop(),
+          ),
+        ),
+      );
 }
 
 class _Meta extends ConsumerWidget {
@@ -460,7 +563,9 @@ class _Meta extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final id = info.channelId;
-    final subscribed = id == null ? false : ref.watch(isSubscribedProvider(id)).value ?? false;
+    final subscribed =
+        id == null ? false : ref.watch(isSubscribedProvider(id)).value ?? false;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -479,7 +584,10 @@ class _Meta extends ConsumerWidget {
                       '@${info.channelName.replaceAll(' ', '')}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -490,22 +598,30 @@ class _Meta extends ConsumerWidget {
               InkWell(
                 borderRadius: BorderRadius.circular(16),
                 onTap: () async {
-                  if (subscribed && !await confirmUnsubscribe(context, info.channelName)) return;
-                  await ref
-                      .read(libraryProvider)
-                      .setSubscribed(
-                        ChannelItem(id: id, name: info.channelName, avatar: info.channelAvatar),
+                  if (subscribed &&
+                      !await confirmUnsubscribe(context, info.channelName)) {
+                    return;
+                  }
+                  await ref.read(libraryProvider).setSubscribed(
+                        ChannelItem(
+                          id: id,
+                          name: info.channelName,
+                          avatar: info.channelAvatar,
+                        ),
                         !subscribed,
                       );
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: subscribed ? Colors.white24 : Colors.white,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    subscribed ? 'Subscribed' : 'Subscribe',
+                    subscribed ? 'Odebíráš' : 'Odebírat',
                     style: TextStyle(
                       color: subscribed ? Colors.white : YtColors.dark.onSubscribe,
                       fontSize: 13,
