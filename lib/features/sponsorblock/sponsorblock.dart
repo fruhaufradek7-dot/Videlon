@@ -1,3 +1,4 @@
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -9,16 +10,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers.dart';
 import '../../ui/messenger.dart';
 
-/// SponsorBlock categories with their community-standard colours (docs/features.md).
+/// Kategorie SponsorBlocku s barvami používanými komunitou.
 enum SbCategory {
-  sponsor('Sponsor', 'Paid promotion', Color(0xFF00D400), SbAction.skip),
-  selfpromo('Unpaid/self promotion', 'Merch, donations, shout-outs', Color(0xFFFFFF00), SbAction.skip),
-  interaction('Interaction reminder', '"Like and subscribe"', Color(0xFFCC00FF), SbAction.skip),
-  intro('Intermission/intro', 'Intro animations, pauses', Color(0xFF00FFFF), SbAction.show),
-  outro('Endcards/credits', 'Credits and end screens', Color(0xFF0202ED), SbAction.show),
-  preview('Preview/recap', 'Clips of what is coming or was shown', Color(0xFF008FD6), SbAction.show),
-  filler('Filler tangent', 'Off-topic jokes and tangents', Color(0xFF7300FF), SbAction.off),
-  musicOfftopic('Non-music section', 'In music videos', Color(0xFFFF9900), SbAction.skip);
+  sponsor('Sponzorovaná část', 'Placená propagace', Color(0xFF00D400), SbAction.skip),
+  selfpromo('Vlastní propagace', 'Merchandise, dary a poděkování', Color(0xFFFFFF00), SbAction.skip),
+  interaction('Výzva k interakci', 'Výzvy k označení To se mi líbí a odběru', Color(0xFFCC00FF), SbAction.skip),
+  intro('Úvod a přestávky', 'Úvodní animace a pauzy', Color(0xFF00FFFF), SbAction.show),
+  outro('Závěrečné titulky', 'Titulky a závěrečné obrazovky', Color(0xFF0202ED), SbAction.show),
+  preview('Ukázka a rekapitulace', 'Ukázky toho, co přijde nebo už zaznělo', Color(0xFF008FD6), SbAction.show),
+  filler('Odbočení od tématu', 'Vtipy a odbočky mimo téma', Color(0xFF7300FF), SbAction.off),
+  musicOfftopic('Část bez hudby', 'V hudebních videích', Color(0xFFFF9900), SbAction.skip);
 
   const SbCategory(this.label, this.description, this.color, this.defaultAction);
 
@@ -27,7 +28,7 @@ enum SbCategory {
   final Color color;
   final SbAction defaultAction;
 
-  /// The API name.
+  /// Název kategorie používaný v API.
   String get key => this == musicOfftopic ? 'music_offtopic' : name;
 }
 
@@ -41,18 +42,17 @@ class SbSegment {
   final Duration end;
 }
 
-/// Uses the hash-prefix endpoint, so only the first 4 hex characters of sha256(videoId) leave the device.
+/// Používá vyhledávání podle prefixu hashe; zařízení odesílá pouze první 4 znaky SHA-256 ID videa.
 class SponsorBlockService {
   SponsorBlockService({Dio? dio})
-    : _dio =
-          dio ??
-          Dio(
-            BaseOptions(
-              baseUrl: 'https://sponsor.ajay.app/api/',
-              connectTimeout: const Duration(seconds: 8),
-              receiveTimeout: const Duration(seconds: 10),
-            ),
-          );
+      : _dio = dio ??
+            Dio(
+              BaseOptions(
+                baseUrl: 'https://sponsor.ajay.app/api/',
+                connectTimeout: const Duration(seconds: 8),
+                receiveTimeout: const Duration(seconds: 10),
+              ),
+            );
 
   final Dio _dio;
   final _cache = <String, List<SbSegment>>{};
@@ -60,7 +60,8 @@ class SponsorBlockService {
   Future<List<SbSegment>> segmentsFor(String videoId) async {
     final cached = _cache[videoId];
     if (cached != null) return cached;
-    final prefix = sha256.convert(utf8.encode(videoId)).toString().substring(0, 4);
+    final prefix =
+        sha256.convert(utf8.encode(videoId)).toString().substring(0, 4);
     List<SbSegment> result;
     try {
       final res = await _dio.get<List<dynamic>>(
@@ -76,9 +77,12 @@ class SponsorBlockService {
           .firstOrNull;
       final byKey = {for (final c in SbCategory.values) c.key: c};
       result = [
-        for (final s in (entry?['segments'] as List? ?? const []).cast<Map<String, dynamic>>())
-          if ((s['segment'], byKey[s['category']]) case ([final num start, final num end], final SbCategory cat)
-              when end - start >= 1)
+        for (final s
+            in (entry?['segments'] as List? ?? const [])
+                .cast<Map<String, dynamic>>())
+          if ((s['segment'], byKey[s['category']])
+              case ([final num start, final num end], final SbCategory cat)
+                  when end - start >= 1)
             SbSegment(
               cat,
               Duration(milliseconds: (start * 1000).round()),
@@ -86,7 +90,7 @@ class SponsorBlockService {
             ),
       ]..sort((a, b) => a.start.compareTo(b.start));
     } on DioException catch (e) {
-      // 404: no segments for any video with this prefix.
+      // Chyba 404 znamená, že pro žádné video s tímto prefixem nejsou dostupné úseky.
       if (e.response?.statusCode != 404) return const [];
       result = const [];
     }
@@ -95,9 +99,10 @@ class SponsorBlockService {
   }
 }
 
-final sponsorBlockServiceProvider = Provider<SponsorBlockService>((ref) => SponsorBlockService());
+final sponsorBlockServiceProvider =
+    Provider<SponsorBlockService>((ref) => SponsorBlockService());
 
-/// Per-category actions plus the master switch, in prefs (`sb_enabled`, `sb_<category>`).
+/// Akce pro jednotlivé kategorie a hlavní přepínač v nastavení aplikace.
 @immutable
 class SbSettings {
   const SbSettings(this.enabled, this.actions);
@@ -105,18 +110,22 @@ class SbSettings {
   final bool enabled;
   final Map<SbCategory, SbAction> actions;
 
-  SbAction actionFor(SbCategory c) => enabled ? actions[c] ?? c.defaultAction : SbAction.off;
+  SbAction actionFor(SbCategory c) =>
+      enabled ? actions[c] ?? c.defaultAction : SbAction.off;
 }
 
-final sbSettingsProvider = NotifierProvider<SbSettingsController, SbSettings>(SbSettingsController.new);
+final sbSettingsProvider =
+    NotifierProvider<SbSettingsController, SbSettings>(SbSettingsController.new);
 
 class SbSettingsController extends Notifier<SbSettings> {
   @override
   SbSettings build() {
     final p = ref.watch(prefsProvider);
-    // Off until the user turns it on: skipping changes how videos play compared with YouTube.
+    // Funkce je ve výchozím stavu vypnutá, protože mění způsob přehrávání videí.
     return SbSettings(p.getBool('sb_enabled') ?? false, {
-      for (final c in SbCategory.values) c: SbAction.values.asNameMap()[p.getString('sb_${c.name}')] ?? c.defaultAction,
+      for (final c in SbCategory.values)
+        c: SbAction.values.asNameMap()[p.getString('sb_${c.name}')] ??
+            c.defaultAction,
     });
   }
 
@@ -131,38 +140,48 @@ class SbSettingsController extends Notifier<SbSettings> {
   }
 }
 
-/// The segments of a video that aren't turned off.
-final sbSegmentsProvider = FutureProvider.autoDispose.family<List<SbSegment>, String>((ref, videoId) async {
-  if (videoId.isEmpty) return const [];
-  final settings = ref.watch(sbSettingsProvider);
-  if (!settings.enabled) return const [];
-  final all = await ref.read(sponsorBlockServiceProvider).segmentsFor(videoId);
-  return all.where((s) => settings.actionFor(s.category) != SbAction.off).toList();
-});
+/// Úseky videa, které nejsou zcela vypnuté.
+final sbSegmentsProvider =
+    FutureProvider.autoDispose.family<List<SbSegment>, String>(
+  (ref, videoId) async {
+    if (videoId.isEmpty) return const [];
+    final settings = ref.watch(sbSettingsProvider);
+    if (!settings.enabled) return const [];
+    final all =
+        await ref.read(sponsorBlockServiceProvider).segmentsFor(videoId);
+    return all
+        .where((s) => settings.actionFor(s.category) != SbAction.off)
+        .toList();
+  },
+);
 
-/// Skips "skip" segments of the playing video and says so in a toast with Undo, like SponsorBlock's extension.
-/// Watched from the app root.
+/// Přeskakuje označené části videa a nabídne možnost vrátit přeskočení zpět.
 final sbSkipperProvider = Provider<void>((ref) {
   final controller = ref.watch(playerControllerProvider);
   final videoId = ref.watch(currentInfoProvider)?.videoId;
   if (controller == null || videoId == null) return;
-  final segments = ref.watch(sbSegmentsProvider(videoId)).value ?? const <SbSegment>[];
+  final segments =
+      ref.watch(sbSegmentsProvider(videoId)).value ?? const <SbSegment>[];
   final settings = ref.watch(sbSettingsProvider);
-  final skippable = segments.where((s) => settings.actionFor(s.category) == SbAction.skip).toList();
+  final skippable = segments
+      .where((s) => settings.actionFor(s.category) == SbAction.skip)
+      .toList();
   if (skippable.isEmpty) return;
   final done = <SbSegment>{};
+
   void check() {
     final v = controller.value;
     if (!v.isPlaying) return;
     for (final s in skippable) {
       if (done.contains(s)) continue;
-      if (v.position >= s.start && v.position < s.end - const Duration(milliseconds: 500)) {
+      if (v.position >= s.start &&
+          v.position < s.end - const Duration(milliseconds: 500)) {
         done.add(s);
         final from = v.position;
         controller.seekTo(s.end);
         showGlobalSnack(
-          'Skipped ${s.category.label.toLowerCase()}',
-          action: 'Undo',
+          'Přeskočena část: ${s.category.label.toLowerCase()}',
+          action: 'Vrátit zpět',
           onAction: () => controller.seekTo(from),
         );
         break;
@@ -174,13 +193,19 @@ final sbSkipperProvider = Provider<void>((ref) {
   ref.onDispose(() => controller.removeListener(check));
 });
 
-/// For the seek bar: (start, end, colour) of the playing video's segments.
-List<(Duration, Duration, Color)> sbSeekBarSegments(WidgetRef ref, String videoId) => [
-  for (final s in ref.watch(sbSegmentsProvider(videoId)).value ?? const <SbSegment>[])
-    (s.start, s.end, s.category.color),
-];
+/// Úseky videa pro zobrazení barevných značek na časové ose.
+List<(Duration, Duration, Color)> sbSeekBarSegments(
+  WidgetRef ref,
+  String videoId,
+) =>
+    [
+      for (final s
+          in ref.watch(sbSegmentsProvider(videoId)).value ??
+              const <SbSegment>[])
+        (s.start, s.end, s.category.color),
+    ];
 
-/// The settings section.
+/// Sekce nastavení SponsorBlocku.
 Widget sponsorBlockSettings(BuildContext context, WidgetRef ref) {
   final s = ref.watch(sbSettingsProvider);
   final ctl = ref.read(sbSettingsProvider.notifier);
@@ -200,8 +225,10 @@ Widget sponsorBlockSettings(BuildContext context, WidgetRef ref) {
         ),
       ),
       SwitchListTile(
-        title: const Text('Skip sponsors and more'),
-        subtitle: const Text('Community-submitted segments from sponsor.ajay.app'),
+        title: const Text('Přeskakovat sponzory a další části'),
+        subtitle: const Text(
+          'Úseky označené komunitou na sponsor.ajay.app',
+        ),
         value: s.enabled,
         onChanged: ctl.setEnabled,
       ),
@@ -211,7 +238,10 @@ Widget sponsorBlockSettings(BuildContext context, WidgetRef ref) {
             leading: Container(
               width: 14,
               height: 14,
-              decoration: BoxDecoration(color: c.color, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: c.color,
+                shape: BoxShape.circle,
+              ),
             ),
             title: Text(c.label),
             subtitle: Text(c.description),
@@ -219,9 +249,18 @@ Widget sponsorBlockSettings(BuildContext context, WidgetRef ref) {
               value: s.actions[c] ?? c.defaultAction,
               underline: const SizedBox.shrink(),
               items: const [
-                DropdownMenuItem(value: SbAction.skip, child: Text('Skip')),
-                DropdownMenuItem(value: SbAction.show, child: Text('Show')),
-                DropdownMenuItem(value: SbAction.off, child: Text('Off')),
+                DropdownMenuItem(
+                  value: SbAction.skip,
+                  child: Text('Přeskočit'),
+                ),
+                DropdownMenuItem(
+                  value: SbAction.show,
+                  child: Text('Zobrazit'),
+                ),
+                DropdownMenuItem(
+                  value: SbAction.off,
+                  child: Text('Vypnuto'),
+                ),
               ],
               onChanged: (a) {
                 if (a != null) ctl.setAction(c, a);
