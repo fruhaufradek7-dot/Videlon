@@ -1,4 +1,4 @@
-
+```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +12,7 @@ import '../../ui/widgets/common.dart';
 final settingsExtraSections = <Widget Function(BuildContext, WidgetRef)>[];
 
 const _languages = {
+  'cs': 'Čeština',
   'en': 'Angličtina',
   'hi': 'Hindština',
   'ml': 'Malajálamština',
@@ -224,3 +225,4 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 }
+```
