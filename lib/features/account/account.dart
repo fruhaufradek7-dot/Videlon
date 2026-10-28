@@ -1,3 +1,4 @@
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -27,8 +28,8 @@ class AuthState {
 const _cookieKey = 'yt_cookie';
 const _cookies = MethodChannel('youpipe/cookies');
 
-/// Google sign-in (docs/account.md). Optional: everything works signed out. The session cookie lives in encrypted
-/// storage and is handed to InnerTube.
+/// Přihlášení přes Google (docs/account.md). Přihlášení je volitelné.
+/// Relace se ukládá v šifrovaném úložišti a předává se službě InnerTube.
 final authProvider = AsyncNotifierProvider<AuthController, AuthState>(AuthController.new);
 
 class AuthController extends AsyncNotifier<AuthState> {
@@ -45,13 +46,14 @@ class AuthController extends AsyncNotifier<AuthState> {
     try {
       return AuthState(signedIn: true, account: await _yt.accountInfo());
     } catch (e) {
-      // Offline or a YouTube hiccup: stay signed in and show the account later.
-      debugPrint('YouPipe: account info failed: $e');
+      // Bez připojení nebo při problému YouTube zůstane uživatel přihlášený.
+      debugPrint('YouPipe: načtení informací o účtu selhalo: $e');
       return const AuthState(signedIn: true);
     }
   }
 
-  /// Likes, subscriptions and Watch later also go to the account; the local library stays the source of truth.
+  /// Lajky, odběry a videa Přehrát později se synchronizují s účtem.
+  /// Místní knihovna zůstává hlavním zdrojem dat.
   void _hookSync() {
     ref.read(libraryProvider).remoteSync = (action, id, on) {
       if (!_yt.signedIn) return;
@@ -61,11 +63,12 @@ class AuthController extends AsyncNotifier<AuthState> {
         'watchLater' => _yt.editPlaylist('WL', id, add: on),
         _ => Future.value(),
       };
-      call.catchError((Object e) => debugPrint('YouPipe: account sync $action failed: $e'));
+      call.catchError((Object e) => debugPrint('YouPipe: synchronizace účtu $action selhala: $e'));
     };
   }
 
-  /// Reads the WebView cookie jar once the login page lands on youtube.com. False if not signed in yet.
+  /// Načte cookies z WebView po přechodu na youtube.com.
+  /// Vrací false, pokud přihlášení ještě není dokončeno.
   Future<bool> completeSignIn() async {
     final cookie = await _cookies.invokeMethod<String>('get', {'url': 'https://www.youtube.com'});
     if (cookie == null || !isSignedInCookie(cookie)) return false;
@@ -86,8 +89,8 @@ class AuthController extends AsyncNotifier<AuthState> {
   }
 }
 
-/// Google's own sign-in page, landing on youtube.com. The user types their credentials into Google's page; the app
-/// only reads the resulting session cookie.
+/// Oficiální přihlašovací stránka Googlu, která se po přihlášení vrátí na youtube.com.
+/// Přihlašovací údaje zadává uživatel přímo na stránce Googlu.
 const _loginUrl =
     'https://accounts.google.com/ServiceLogin?service=youtube&uilel=3&passive=true'
     '&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den'
@@ -125,7 +128,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
     if (ok) {
       context.pop(true);
-      showSnack(context, 'Signed in');
+      showSnack(context, 'Přihlášení proběhlo úspěšně');
     } else {
       _finishing = false;
     }
@@ -134,7 +137,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('Sign in'),
+      title: const Text('Přihlášení'),
       leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Symbols.close)),
       bottom: _progress < 100
           ? PreferredSize(
@@ -147,7 +150,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   );
 }
 
-/// The top of the You tab: the account (or a Sign in prompt), and the account's own YouTube lists.
+/// Hlavička sekce Vy: účet nebo výzva k přihlášení a seznamy z účtu YouTube.
 Widget accountHeader(BuildContext context, WidgetRef ref) {
   final auth = ref.watch(authProvider).value ?? const AuthState();
   final c = context.yt;
@@ -167,8 +170,8 @@ Widget accountHeader(BuildContext context, WidgetRef ref) {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('You', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
-                Text('Your library lives on this device', style: TextStyle(color: c.textSecondary, fontSize: 13)),
+                const Text('Vy', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+                Text('Vaše knihovna je uložena v tomto zařízení', style: TextStyle(color: c.textSecondary, fontSize: 13)),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: () => context.push('/login'),
@@ -178,7 +181,7 @@ Widget accountHeader(BuildContext context, WidgetRef ref) {
                     side: BorderSide(color: c.divider),
                   ),
                   icon: const Icon(Symbols.account_circle),
-                  label: const Text('Sign in (optional)'),
+                  label: const Text('Přihlásit se (volitelné)'),
                 ),
               ],
             ),
@@ -202,7 +205,7 @@ Widget accountHeader(BuildContext context, WidgetRef ref) {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(account?.name ?? 'Signed in', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+                  Text(account?.name ?? 'Přihlášený uživatel', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
                   if (account?.handle != null) Text(account!.handle!, style: TextStyle(color: c.textSecondary)),
                   TextButton(
                     style: TextButton.styleFrom(padding: EdgeInsets.zero, foregroundColor: c.link),
@@ -210,17 +213,17 @@ Widget accountHeader(BuildContext context, WidgetRef ref) {
                       final ok = await showDialog<bool>(
                         context: context,
                         builder: (d) => AlertDialog(
-                          title: const Text('Sign out?'),
-                          content: const Text('Your library on this device stays.'),
+                          title: const Text('Odhlásit se?'),
+                          content: const Text('Vaše knihovna v tomto zařízení zůstane zachována.'),
                           actions: [
-                            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
-                            TextButton(onPressed: () => Navigator.pop(d, true), child: const Text('Sign out')),
+                            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Zrušit')),
+                            TextButton(onPressed: () => Navigator.pop(d, true), child: const Text('Odhlásit se')),
                           ],
                         ),
                       );
                       if (ok == true) await ref.read(authProvider.notifier).signOut();
                     },
-                    child: const Text('Sign out'),
+                    child: const Text('Odhlásit se'),
                   ),
                 ],
               ),
@@ -230,31 +233,31 @@ Widget accountHeader(BuildContext context, WidgetRef ref) {
       ),
       const Padding(
         padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
-        child: Text('Your YouTube account', style: YtText.sectionTitle),
+        child: Text('Váš účet YouTube', style: YtText.sectionTitle),
       ),
       ListTile(
         leading: const Icon(Symbols.history, weight: 300),
-        title: const Text('YouTube history'),
-        onTap: () => open('FEhistory', 'YouTube history'),
+        title: const Text('Historie YouTube'),
+        onTap: () => open('FEhistory', 'Historie YouTube'),
       ),
       ListTile(
         leading: const Icon(Symbols.video_library, weight: 300),
-        title: const Text('YouTube playlists'),
-        onTap: () => open('FEplaylist_aggregation', 'Playlists'),
+        title: const Text('Playlisty YouTube'),
+        onTap: () => open('FEplaylist_aggregation', 'Playlisty'),
       ),
       ListTile(
         leading: const Icon(Symbols.schedule, weight: 300),
-        title: const Text('Watch later'),
+        title: const Text('Přehrát později'),
         onTap: () => openPlaylist(context, ref, 'WL'),
       ),
       ListTile(
         leading: const Icon(Symbols.thumb_up, weight: 300),
-        title: const Text('Liked videos'),
+        title: const Text('Oblíbená videa'),
         onTap: () => openPlaylist(context, ref, 'LL'),
       ),
       ListTile(
         leading: const Icon(Symbols.subscriptions, weight: 300),
-        title: const Text('Import subscriptions from your account'),
+        title: const Text('Importovat odběry z účtu'),
         onTap: () => _importAccountSubscriptions(context, ref),
       ),
     ],
@@ -262,12 +265,12 @@ Widget accountHeader(BuildContext context, WidgetRef ref) {
 }
 
 Future<void> _importAccountSubscriptions(BuildContext context, WidgetRef ref) async {
-  showSnack(context, 'Importing subscriptions…');
+  showSnack(context, 'Importuji odběry…');
   try {
     final yt = ref.read(innerTubeProvider);
     var page = await yt.subscribedChannels();
     final channels = <ChannelItem>[...page.entries.allItems.whereType<ChannelItem>()];
-    // Follow continuations (large subscription lists come in pages).
+    // Načítání dalších stránek, pokud je seznam odběrů dlouhý.
     while (page.continuation != null && channels.length < 5000) {
       page = await yt.browseContinuation(page.continuation!);
       final more = page.entries.allItems.whereType<ChannelItem>().toList();
@@ -280,17 +283,17 @@ Future<void> _importAccountSubscriptions(BuildContext context, WidgetRef ref) as
       showSnack(
         context,
         channels.isEmpty
-            ? 'Your YouTube account has no subscriptions'
-            : 'Imported ${channels.length} subscription${channels.length == 1 ? '' : 's'}',
+            ? 'Ve vašem účtu YouTube nejsou žádné odběry'
+            : 'Importováno odběrů: ${channels.length}',
       );
     }
   } catch (e, st) {
-    debugPrint('YouPipe: account subscriptions import failed: $e\n$st');
-    if (context.mounted) showSnack(context, 'Couldn\'t import subscriptions');
+    debugPrint('YouPipe: import odběrů z účtu selhal: $e\n$st');
+    if (context.mounted) showSnack(context, 'Odběry se nepodařilo importovat');
   }
 }
 
-/// An account list (YouTube history, playlists).
+/// Seznam z účtu (historie YouTube, playlisty).
 final accountFeedProvider = AsyncNotifierProvider.autoDispose
     .family<AccountFeedController, PagedList<FeedEntry>, String>(AccountFeedController.new);
 
