@@ -1,4 +1,4 @@
-```dart
+
 /// Number, duration and date formatting in Czech.
 library;
 
@@ -72,4 +72,4 @@ String formatDuration(Duration d) {
   final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
   return '${neg ? '-' : ''}${h > 0 ? '$h:$m:$s' : '$m:$s'}';
 }
-```
+
