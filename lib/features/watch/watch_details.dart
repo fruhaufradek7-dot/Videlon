@@ -1,3 +1,4 @@
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -18,13 +19,13 @@ import '../../util/format.dart';
 
 enum WatchSheet { none, description, comments, queue }
 
-/// Everything under the player on the watch page.
+/// Vše pod přehrávačem na stránce sledovaného videa.
 class WatchDetails extends ConsumerWidget {
   const WatchDetails({super.key, required this.onSheet, this.showRelated = true});
 
   final ValueChanged<WatchSheet> onSheet;
 
-  /// False on wide screens, where [RelatedList] has its own column next to the player.
+  /// Na širokých obrazovkách má seznam souvisejících videí vlastní sloupec vedle přehrávače.
   final bool showRelated;
 
   @override
@@ -66,7 +67,7 @@ class WatchDetails extends ConsumerWidget {
                               text: [
                                 if (infoForThis != null && infoForThis.viewCount >= 0)
                                   infoForThis.isLive
-                                      ? '${compactCount(infoForThis.viewCount)} watching'
+                                      ? '${compactCount(infoForThis.viewCount)} sledujících'
                                       : viewsLabel(infoForThis.viewCount)
                                 else
                                   ?video.viewsText,
@@ -74,7 +75,7 @@ class WatchDetails extends ConsumerWidget {
                               ].join('  '),
                             ),
                             TextSpan(
-                              text: '  ...more',
+                              text: '  ...více',
                               style: TextStyle(color: c.textPrimary, fontWeight: FontWeight.w500),
                             ),
                           ],
@@ -107,7 +108,7 @@ class WatchDetails extends ConsumerWidget {
   }
 }
 
-/// The related videos as their own column, next to the player on wide screens (YouTube tablet's layout).
+/// Související videa ve vlastním sloupci vedle přehrávače na širokých obrazovkách.
 class RelatedList extends ConsumerWidget {
   const RelatedList({super.key});
 
@@ -129,7 +130,7 @@ class RelatedList extends ConsumerWidget {
   }
 }
 
-/// Related videos as cards (under the details) or as compact rows (in the side column).
+/// Související videa jako karty pod podrobnostmi nebo jako kompaktní řádky v postranním sloupci.
 List<Widget> _relatedSlivers(bool loading, List<YtItem> items, {required bool compact}) => [
   if (loading && items.isEmpty)
     const SliverToBoxAdapter(
@@ -209,7 +210,7 @@ class _Actions extends ConsumerWidget {
                   onTap: () async {
                     await ref.read(libraryProvider).setLiked(video, !liked);
                     if (context.mounted) {
-                      showSnack(context, liked ? 'Removed from Liked videos' : 'Added to Liked videos');
+                      showSnack(context, liked ? 'Odebráno z oblíbených videí' : 'Přidáno mezi oblíbená videa');
                     }
                   },
                   child: Row(
@@ -235,25 +236,25 @@ class _Actions extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 8),
-          PillButton(icon: Symbols.share, label: 'Share', onTap: () => shareVideo(video)),
+          PillButton(icon: Symbols.share, label: 'Sdílet', onTap: () => shareVideo(video)),
           const SizedBox(width: 8),
           if (downloadStarter != null && !video.isLive) ...[
             downloadPillBuilder?.call(context, ref, video) ??
                 PillButton(
                   icon: Symbols.download,
-                  label: 'Download',
+                  label: 'Stáhnout',
                   onTap: () => downloadStarter!(context, ref, video),
                 ),
             const SizedBox(width: 8),
           ],
-          PillButton(icon: Symbols.playlist_add, label: 'Save', onTap: () => showSaveToPlaylist(context, ref, video)),
+          PillButton(icon: Symbols.playlist_add, label: 'Uložit', onTap: () => showSaveToPlaylist(context, ref, video)),
           const SizedBox(width: 8),
           PillButton(
             icon: Symbols.schedule,
-            label: 'Watch later',
+            label: 'Přehrát později',
             onTap: () async {
               await ref.read(libraryProvider).toggleWatchLater(video);
-              if (context.mounted) showSnack(context, 'Watch later updated');
+              if (context.mounted) showSnack(context, 'Seznam Přehrát později byl aktualizován');
             },
           ),
         ],
@@ -277,10 +278,10 @@ class _CommentsTeaser extends ConsumerWidget {
     final c = context.yt;
     if (comments.hasError) return const SizedBox(height: 12);
     if (comments.hasValue && first == null && count == null) {
-      // Comments are turned off for this video.
+      // Komentáře jsou u tohoto videa vypnuté.
       return Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-        child: Text('Comments are turned off.', style: TextStyle(color: c.textSecondary, fontSize: 13)),
+        child: Text('Komentáře jsou vypnuté.', style: TextStyle(color: c.textSecondary, fontSize: 13)),
       );
     }
     return Padding(
@@ -302,7 +303,7 @@ class _CommentsTeaser extends ConsumerWidget {
                     TextSpan(
                       children: [
                         const TextSpan(
-                          text: 'Comments',
+                          text: 'Komentáře',
                           style: TextStyle(fontWeight: FontWeight.w700),
                         ),
                         if (count != null)
@@ -316,7 +317,7 @@ class _CommentsTeaser extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   if (first == null)
-                    Text('Loading comments…', style: TextStyle(color: c.textSecondary, fontSize: 13))
+                    Text('Načítání komentářů…', style: TextStyle(color: c.textSecondary, fontSize: 13))
                   else
                     Row(
                       children: [
@@ -342,7 +343,7 @@ class _CommentsTeaser extends ConsumerWidget {
   }
 }
 
-/// "2,458,072" → "2.4M".
+/// „2 458 072“ → „2,4 mil.“.
 String shortCount(String grouped) {
   final n = int.tryParse(grouped.replaceAll(RegExp(r'[^0-9]'), ''));
   return n == null ? grouped : compactCount(n);
@@ -366,8 +367,8 @@ class _QueueCard extends StatelessWidget {
           onTap: onTap,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           leading: const Icon(Symbols.queue_music),
-          title: Text('Queue · ${now.index + 1} / ${now.queue.length}'),
-          subtitle: next == null ? null : Text('Next: ${next.title}', maxLines: 1, overflow: TextOverflow.ellipsis),
+          title: Text('Fronta · ${now.index + 1} / ${now.queue.length}'),
+          subtitle: next == null ? null : Text('Další: ${next.title}', maxLines: 1, overflow: TextOverflow.ellipsis),
           trailing: const Icon(Symbols.expand_more),
         ),
       ),
@@ -375,9 +376,9 @@ class _QueueCard extends StatelessWidget {
   }
 }
 
-// Panels shown under the player ---------------------------------------------------------------------------------
+// Panely zobrazené pod přehrávačem -------------------------------------------------------------
 
-/// The header of the Description / Comments / Queue panels.
+/// Záhlaví panelů Popis / Komentáře / Fronta.
 class PanelHeader extends StatelessWidget {
   const PanelHeader({super.key, required this.title, this.trailing, required this.onClose});
 
@@ -429,11 +430,11 @@ class DescriptionPanel extends ConsumerWidget {
     final c = context.yt;
     void seek(Duration d) => ref.read(playerControllerProvider)?.seekTo(d);
     final date = info?.uploadDate == null ? null : DateTime.tryParse(info!.uploadDate!);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = ['led', 'úno', 'bře', 'dub', 'kvě', 'čer', 'čvc', 'srp', 'zář', 'říj', 'lis', 'pro'];
     final likes = (info?.likeCount ?? -1) >= 0 ? info!.likeCount : votes?.likes;
     return Column(
       children: [
-        PanelHeader(title: const Text('Description'), onClose: onClose),
+        PanelHeader(title: const Text('Popis'), onClose: onClose),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -443,10 +444,10 @@ class DescriptionPanel extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _Stat(likes == null ? '–' : compactCount(likes), 'Likes'),
+                  _Stat(likes == null ? '–' : compactCount(likes), 'To se mi líbí'),
                   _Stat(
                     info == null || info.viewCount < 0 ? '–' : _grouped(info.viewCount),
-                    info?.isLive == true ? 'Watching' : 'Views',
+                    info?.isLive == true ? 'Sledující' : 'Zhlédnutí',
                   ),
                   if (date != null)
                     _Stat('${months[date.month - 1]} ${date.day}', '${date.year}')
@@ -472,7 +473,7 @@ class DescriptionPanel extends ConsumerWidget {
               ),
               if (info != null && info.chapters.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                const Text('Chapters', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                const Text('Kapitoly', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),
                 SizedBox(
                   height: 160,
@@ -564,7 +565,7 @@ class _CommentsPanelState extends ConsumerState<CommentsPanel> {
           title: Text.rich(
             TextSpan(
               children: [
-                const TextSpan(text: 'Comments'),
+                const TextSpan(text: 'Komentáře'),
                 if (count != null)
                   TextSpan(
                     text: '  ${shortCount(count)}',
@@ -714,7 +715,7 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                         Icon(_showReplies ? Symbols.expand_less : Symbols.expand_more, size: 20),
                         const SizedBox(width: 4),
                         Text(
-                          '${cm.replyCount} ${cm.replyCount == 1 ? 'reply' : 'replies'}',
+                          '${cm.replyCount} ${cm.replyCount == 1 ? 'odpověď' : 'odpovědi'}',
                           style: const TextStyle(fontWeight: FontWeight.w500),
                         ),
                       ],
@@ -748,7 +749,7 @@ class _Replies extends ConsumerWidget {
           TextButton(
             onPressed: () => ref.read(repliesProvider(token).notifier).loadMore(),
             style: TextButton.styleFrom(foregroundColor: context.yt.link),
-            child: const Text('Show more replies'),
+            child: const Text('Zobrazit další odpovědi'),
           ),
       ],
     );
@@ -766,10 +767,10 @@ class QueuePanel extends ConsumerWidget {
     if (now == null) return const SizedBox.shrink();
     return Column(
       children: [
-        PanelHeader(title: Text('Queue · ${now.index + 1}/${now.queue.length}'), onClose: onClose),
+        PanelHeader(title: Text('Fronta · ${now.index + 1}/${now.queue.length}'), onClose: onClose),
         Expanded(
           child: ListView.builder(
-            // Explicit, or the list adds the status bar's height on top (it reads the screen's insets).
+            // Explicitní hodnota zabrání přičtení výšky stavového řádku k seznamu.
             padding: const EdgeInsets.only(bottom: 32),
             itemCount: now.queue.length,
             itemBuilder: (context, i) => Container(
