@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,8 +6,9 @@ import '../../ui/theme/yt_theme.dart';
 import 'update.dart';
 import 'updater.dart';
 
-/// "Update available": what's new, then Later / Skip this version / Update. Update downloads the APK for
-/// this phone, checks it and opens Android's install screen. Closing the sheet doesn't stop a download.
+/// „Je dostupná aktualizace“: seznam novinek a možnosti Později / Přeskočit tuto verzi / Aktualizovat.
+/// Aktualizace stáhne APK pro toto zařízení, ověří ji a otevře instalační obrazovku Androidu.
+/// Zavřením okna se stahování nezastaví.
 Future<void> showUpdateSheet(BuildContext context, AvailableUpdate update) => showModalBottomSheet<void>(
   context: context,
   useRootNavigator: true,
@@ -30,18 +32,18 @@ class _UpdateSheet extends ConsumerWidget {
 
     final Widget actions = switch (state) {
       UpdateDownloading(:final received, :final total, :final progress) => _Progress(
-        label: total > 0 ? 'Downloading… ${_mb(received)} of ${_mb(total)}' : 'Downloading…',
+        label: total > 0 ? 'Stahování… ${_mb(received)} z ${_mb(total)}' : 'Stahování…',
         value: progress,
         onCancel: controller.cancelDownload,
       ),
-      UpdateInstalling() => const _Progress(label: 'Opening the installer…'),
+      UpdateInstalling() => const _Progress(label: 'Otevírám instalační program…'),
       UpdateFailed(:final error) => _Failure(
         error: error,
         onRetry: () => controller.downloadAndInstall(update),
         onOpenReleases: () => ref.read(updaterProvider).openUrl(update.release.pageUrl),
       ),
-      // Skip on the left, Later and Update on the right; with large text they wrap onto two lines instead of
-      // overflowing.
+      // Přeskočit vlevo, Později a Aktualizovat vpravo. Při větším písmu se tlačítka
+      // zalomí do dvou řádků, aby nepřetékala mimo obrazovku.
       _ => OverflowBar(
         alignment: MainAxisAlignment.spaceBetween,
         overflowAlignment: OverflowBarAlignment.end,
@@ -52,7 +54,7 @@ class _UpdateSheet extends ConsumerWidget {
               if (context.mounted) Navigator.of(context).pop();
             },
             style: TextButton.styleFrom(foregroundColor: context.yt.textSecondary),
-            child: const Text('Skip this version'),
+            child: const Text('Přeskočit tuto verzi'),
           ),
           OverflowBar(
             spacing: 8,
@@ -61,7 +63,7 @@ class _UpdateSheet extends ConsumerWidget {
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
                 style: TextButton.styleFrom(foregroundColor: context.yt.textPrimary),
-                child: const Text('Later'),
+                child: const Text('Později'),
               ),
               FilledButton(
                 onPressed: () => controller.downloadAndInstall(update),
@@ -70,7 +72,7 @@ class _UpdateSheet extends ConsumerWidget {
                   foregroundColor: context.yt.background,
                   shape: const StadiumBorder(),
                 ),
-                child: const Text('Update'),
+                child: const Text('Aktualizovat'),
               ),
             ],
           ),
@@ -84,12 +86,12 @@ class _UpdateSheet extends ConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Update available', style: theme.textTheme.titleLarge),
+          Text('Je dostupná aktualizace', style: theme.textTheme.titleLarge),
           const SizedBox(height: 4),
-          Text('Version ${update.version} • ${_mb(update.apk.size)}', style: theme.textTheme.bodyMedium),
+          Text('Verze ${update.version} • ${_mb(update.apk.size)}', style: theme.textTheme.bodyMedium),
           if (notes.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Text("What's new", style: theme.textTheme.titleSmall),
+            Text('Co je nového', style: theme.textTheme.titleSmall),
             const SizedBox(height: 8),
             ConstrainedBox(
               constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.3),
@@ -101,7 +103,7 @@ class _UpdateSheet extends ConsumerWidget {
             child: TextButton(
               onPressed: () => ref.read(updaterProvider).openUrl(update.release.pageUrl),
               style: TextButton.styleFrom(foregroundColor: context.yt.textSecondary, padding: EdgeInsets.zero),
-              child: const Text('Full release notes'),
+              child: const Text('Úplné poznámky k vydání'),
             ),
           ),
           const SizedBox(height: 8),
@@ -137,7 +139,7 @@ class _Progress extends StatelessWidget {
             TextButton(
               onPressed: onCancel,
               style: TextButton.styleFrom(foregroundColor: context.yt.textPrimary),
-              child: const Text('Cancel'),
+              child: const Text('Zrušit'),
             ),
         ],
       ),
@@ -153,13 +155,13 @@ class _Failure extends StatelessWidget {
   final VoidCallback onOpenReleases;
 
   String get _message => switch (error.code) {
-    'NETWORK' => "Couldn't download the update. Check your connection and try again.",
-    'HASH_MISMATCH' => 'The download was damaged. Try again.',
+    'NETWORK' => 'Aktualizaci se nepodařilo stáhnout. Zkontrolujte připojení a zkuste to znovu.',
+    'HASH_MISMATCH' => 'Stažený soubor je poškozený. Zkuste to znovu.',
     'SIGNATURE_MISMATCH' =>
-      'This copy of YouPipe was installed from a different build, so Android won\'t update it. '
-          'Uninstall it, then install the latest version from GitHub.',
-    'DOWNGRADE' => 'The installed version is newer than this release.',
-    _ => "The update couldn't be installed (${error.message}).",
+      'Tato verze aplikace YouPipe byla nainstalována z jiného sestavení, proto ji Android nemůže aktualizovat. '
+          'Odinstalujte ji a poté nainstalujte nejnovější verzi z GitHubu.',
+    'DOWNGRADE' => 'Nainstalovaná verze je novější než tato aktualizace.',
+    _ => 'Aktualizaci se nepodařilo nainstalovat (${error.message}).',
   };
 
   @override
@@ -179,7 +181,7 @@ class _Failure extends StatelessWidget {
               foregroundColor: context.yt.background,
               shape: const StadiumBorder(),
             ),
-            child: Text(reinstall ? 'Open GitHub' : 'Try again'),
+            child: Text(reinstall ? 'Otevřít GitHub' : 'Zkusit znovu'),
           ),
         ),
       ],
