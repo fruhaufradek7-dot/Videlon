@@ -1,7 +1,8 @@
-/// Number, duration and date formatting the way YouTube shows them.
+```dart
+/// Number, duration and date formatting in Czech.
 library;
 
-/// "1.2M", "34K", "999". YouTube rounds down: 1,290,000 is "1.2M".
+/// "1,2 mil.", "34 tis.", "999".
 String compactCount(int n) {
   String fmt(double v, String unit) {
     if (v >= 10) return '${v.floor()}$unit';
@@ -9,35 +10,53 @@ String compactCount(int n) {
     return '${one == one.roundToDouble() ? one.toInt() : one}$unit';
   }
 
-  if (n >= 1000000000) return fmt(n / 1000000000, 'B');
-  if (n >= 1000000) return fmt(n / 1000000, 'M');
-  if (n >= 1000) return fmt(n / 1000, 'K');
+  if (n >= 1000000000) return fmt(n / 1000000000, ' mld.');
+  if (n >= 1000000) return fmt(n / 1000000, ' mil.');
+  if (n >= 1000) return fmt(n / 1000, ' tis.');
   return '$n';
 }
 
-/// "1.2M views", "1 view", "No views".
+/// Czech view count.
 String viewsLabel(int n) => n < 0
     ? ''
     : n == 0
-    ? 'No views'
+    ? 'Žádná zhlédnutí'
     : n == 1
-    ? '1 view'
-    : '${compactCount(n)} views';
+    ? '1 zhlédnutí'
+    : '${compactCount(n)} zhlédnutí';
 
-/// "3 hours ago", like YouTube.
+/// Czech relative time, e.g. "před 3 hodinami".
 String timeAgo(DateTime t, {DateTime? now}) {
   final d = (now ?? DateTime.now()).difference(t);
-  String unit(int n, String u) => '$n $u${n == 1 ? '' : 's'} ago';
-  if (d.inDays >= 365) return unit(d.inDays ~/ 365, 'year');
-  if (d.inDays >= 30) return unit(d.inDays ~/ 30, 'month');
-  if (d.inDays >= 7) return unit(d.inDays ~/ 7, 'week');
-  if (d.inDays >= 1) return unit(d.inDays, 'day');
-  if (d.inHours >= 1) return unit(d.inHours, 'hour');
-  if (d.inMinutes >= 1) return unit(d.inMinutes, 'minute');
-  return 'Just now';
+
+  if (d.inDays >= 365) {
+    final n = d.inDays ~/ 365;
+    return 'před $n ${n == 1 ? 'rokem' : n < 5 ? 'lety' : 'lety'}';
+  }
+  if (d.inDays >= 30) {
+    final n = d.inDays ~/ 30;
+    return 'před $n ${n == 1 ? 'měsícem' : 'měsíci'}';
+  }
+  if (d.inDays >= 7) {
+    final n = d.inDays ~/ 7;
+    return 'před $n ${n == 1 ? 'týdnem' : 'týdny'}';
+  }
+  if (d.inDays >= 1) {
+    final n = d.inDays;
+    return 'před $n ${n == 1 ? 'dnem' : 'dny'}';
+  }
+  if (d.inHours >= 1) {
+    final n = d.inHours;
+    return 'před $n ${n == 1 ? 'hodinou' : n < 5 ? 'hodinami' : 'hodinami'}';
+  }
+  if (d.inMinutes >= 1) {
+    final n = d.inMinutes;
+    return 'před $n ${n == 1 ? 'minutou' : 'minutami'}';
+  }
+  return 'Právě teď';
 }
 
-/// NewPipe's upload date ("2026-10-03T05:30:31-07:00") as "3 hours ago"; other text is returned as-is.
+/// NewPipe upload date as a Czech relative date.
 String? relativeDate(String? text) {
   if (text == null || text.isEmpty) return null;
   final t = DateTime.tryParse(text);
@@ -53,3 +72,4 @@ String formatDuration(Duration d) {
   final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
   return '${neg ? '-' : ''}${h > 0 ? '$h:$m:$s' : '$m:$s'}';
 }
+```
