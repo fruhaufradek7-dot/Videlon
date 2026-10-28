@@ -1,3 +1,4 @@
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -14,7 +15,7 @@ import '../../ui/widgets/common.dart';
 import '../../ui/widgets/video_menu.dart';
 import '../../ui/widgets/video_tiles.dart';
 
-/// The playlist header used by YouTube playlists and local ones alike.
+/// Hlavička playlistu pro playlisty YouTube i místní playlisty.
 class PlaylistHeader extends StatelessWidget {
   const PlaylistHeader({
     super.key,
@@ -38,7 +39,7 @@ class PlaylistHeader extends StatelessWidget {
   final VoidCallback? onShuffle;
   final List<Widget> actions;
 
-  /// Shown when there's no thumbnail (an empty Watch later).
+  /// Zobrazí se, pokud není dostupný náhledový obrázek.
   final IconData? icon;
 
   @override
@@ -46,7 +47,6 @@ class PlaylistHeader extends StatelessWidget {
     final c = context.yt;
     return Stack(
       children: [
-        // The header is tinted by its thumbnail, fading into the page.
         if (thumbnail != null)
           Positioned.fill(
             child: ShaderMask(
@@ -87,7 +87,7 @@ class PlaylistHeader extends StatelessWidget {
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: onOwner,
-                  child: Text('by $owner', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                  child: Text('od uživatele $owner', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                 ),
               ],
               if (meta.isNotEmpty) ...[
@@ -106,7 +106,7 @@ class PlaylistHeader extends StatelessWidget {
                         minimumSize: const Size(0, 40),
                       ),
                       icon: const Icon(Symbols.play_arrow, fill: 1),
-                      label: const Text('Play all', style: TextStyle(fontWeight: FontWeight.w500)),
+                      label: const Text('Přehrát vše', style: TextStyle(fontWeight: FontWeight.w500)),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -119,7 +119,7 @@ class PlaylistHeader extends StatelessWidget {
                         minimumSize: const Size(0, 40),
                       ),
                       icon: const Icon(Symbols.shuffle),
-                      label: const Text('Shuffle', style: TextStyle(fontWeight: FontWeight.w500)),
+                      label: const Text('Náhodně', style: TextStyle(fontWeight: FontWeight.w500)),
                     ),
                   ),
                   ...actions,
@@ -161,7 +161,7 @@ void _playList(BuildContext context, WidgetRef ref, List<VideoItem> videos, {boo
   playVideo(context, ref, list.first, queue: list);
 }
 
-/// A YouTube playlist.
+/// Playlist z YouTube.
 class PlaylistScreen extends ConsumerWidget {
   const PlaylistScreen({super.key, required this.playlistId});
 
@@ -208,7 +208,7 @@ class PlaylistScreen extends ConsumerWidget {
                             onTap: () async {
                               await ref.read(libraryProvider).setPlaylistSaved(p.asItem, !saved);
                               if (context.mounted) {
-                                showSnack(context, saved ? 'Removed from library' : 'Saved to library');
+                                showSnack(context, saved ? 'Odebráno z knihovny' : 'Uloženo do knihovny');
                               }
                             },
                           ),
@@ -242,7 +242,7 @@ class PlaylistScreen extends ConsumerWidget {
   }
 }
 
-/// Watch later, Liked videos, or a playlist made in YouPipe. [id] is the playlist id, or -1 for Liked videos.
+/// Později přehrát, oblíbená videa nebo vlastní playlist YouPipe.
 class LocalPlaylistScreen extends ConsumerWidget {
   const LocalPlaylistScreen({super.key, required this.id});
 
@@ -257,12 +257,12 @@ class LocalPlaylistScreen extends ConsumerWidget {
     final videos =
         (isLiked ? ref.watch(likedVideosProvider) : ref.watch(localPlaylistVideosProvider(id))).value ??
         const <VideoItem>[];
-    final title = isLiked ? 'Liked videos' : playlist?.name ?? '';
+    final title = isLiked ? 'Oblíbená videa' : playlist?.name ?? '';
     final userMade = !isLiked && playlist != null && !playlist.isWatchLater;
     final lib = ref.read(libraryProvider);
     void remove(VideoItem v) {
       unawaited(isLiked ? lib.setLiked(v, false) : lib.removeFromPlaylist(id, v.id));
-      showSnack(context, 'Removed from $title');
+      showSnack(context, 'Odebráno z playlistu $title');
     }
 
     return Scaffold(
@@ -274,18 +274,18 @@ class LocalPlaylistScreen extends ConsumerWidget {
               icon: const Icon(Symbols.more_vert),
               onSelected: (a) async {
                 if (a == 'rename') {
-                  final name = await promptText(context, title: 'Rename playlist', initial: playlist.name);
+                  final name = await promptText(context, title: 'Přejmenovat playlist', initial: playlist.name);
                   if (name != null && name.trim().isNotEmpty) await lib.renamePlaylist(id, name.trim());
                 } else if (a == 'delete') {
-                  // It can't be undone, so YouTube asks first.
+                  // Smazání nelze vrátit zpět, proto se nejprve zobrazí potvrzení.
                   final ok = await showDialog<bool>(
                     context: context,
                     builder: (dialog) => AlertDialog(
-                      title: const Text('Delete playlist?'),
-                      content: Text('"${playlist.name}" will be permanently deleted.'),
+                      title: const Text('Smazat playlist?'),
+                      content: Text('Playlist „${playlist.name}“ bude trvale smazán.'),
                       actions: [
-                        TextButton(onPressed: () => Navigator.pop(dialog, false), child: const Text('Cancel')),
-                        TextButton(onPressed: () => Navigator.pop(dialog, true), child: const Text('Delete')),
+                        TextButton(onPressed: () => Navigator.pop(dialog, false), child: const Text('Zrušit')),
+                        TextButton(onPressed: () => Navigator.pop(dialog, true), child: const Text('Smazat')),
                       ],
                     ),
                   );
@@ -295,8 +295,8 @@ class LocalPlaylistScreen extends ConsumerWidget {
                 }
               },
               itemBuilder: (_) => const [
-                PopupMenuItem(value: 'rename', child: Text('Rename')),
-                PopupMenuItem(value: 'delete', child: Text('Delete playlist')),
+                PopupMenuItem(value: 'rename', child: Text('Přejmenovat')),
+                PopupMenuItem(value: 'delete', child: Text('Smazat playlist')),
               ],
             ),
         ],
@@ -310,8 +310,8 @@ class LocalPlaylistScreen extends ConsumerWidget {
                 thumbnail: videos.firstOrNull?.thumbnailOrDefault,
                 icon: isLiked ? Symbols.thumb_up : Symbols.schedule,
                 meta: [
-                  if (userMade) 'Private' else 'Playlist',
-                  '${videos.length} video${videos.length == 1 ? '' : 's'}',
+                  if (userMade) 'Soukromý playlist' else 'Playlist',
+                  '${videos.length} ${videos.length == 1 ? 'video' : videos.length >= 2 && videos.length <= 4 ? 'videa' : 'videí'}',
                 ],
                 onPlayAll: videos.isEmpty ? null : () => _playList(context, ref, videos),
                 onShuffle: videos.isEmpty ? null : () => _playList(context, ref, videos, shuffle: true),
@@ -322,8 +322,8 @@ class LocalPlaylistScreen extends ConsumerWidget {
                 hasScrollBody: false,
                 child: EmptyView(
                   icon: isLiked ? Symbols.thumb_up : Symbols.video_library,
-                  title: 'No videos in this playlist yet',
-                  message: isLiked ? 'Videos you like will show up here' : 'Save videos from their ⋮ menu',
+                  title: 'V tomto playlistu zatím nejsou žádná videa',
+                  message: isLiked ? 'Videa, která označíš jako oblíbená, se zobrazí zde.' : 'Ukládej videa pomocí nabídky ⋮.',
                 ),
               )
             else if (userMade || playlist?.isWatchLater == true)
@@ -337,7 +337,7 @@ class LocalPlaylistScreen extends ConsumerWidget {
                     videos[i],
                     onTap: () => playVideo(context, ref, videos[i], queue: videos, index: i),
                     onRemove: () => remove(videos[i]),
-                    removeLabel: 'Remove from $title',
+                    removeLabel: 'Odebrat z playlistu $title',
                   ),
                 ),
               )
@@ -348,7 +348,7 @@ class LocalPlaylistScreen extends ConsumerWidget {
                   videos[i],
                   onTap: () => playVideo(context, ref, videos[i], queue: videos, index: i),
                   onRemove: () => remove(videos[i]),
-                  removeLabel: 'Remove from $title',
+                  removeLabel: 'Odebrat z playlistu $title',
                 ),
               ),
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
