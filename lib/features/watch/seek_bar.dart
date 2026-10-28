@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,14 +9,14 @@ import '../../providers.dart';
 import '../../ui/theme/yt_theme.dart';
 import '../../util/format.dart';
 
-/// YouTube's seek bar: red played part, light buffered part, gaps between chapters, a thumb, and while dragging a
-/// storyboard preview with the time and chapter title.
+/// Posuvník videa ve stylu YouTube: červená přehraná část, světlejší načtená část,
+/// mezery mezi kapitolami, jezdec a při posouvání náhled s časem a názvem kapitoly.
 class SeekBar extends ConsumerStatefulWidget {
   const SeekBar({super.key, required this.controller, this.minimal = false, this.onDragging});
 
   final VideoPlayerController controller;
 
-  /// The thin line shown while the controls are hidden (not draggable).
+  /// Tenká čára zobrazená při skrytých ovládacích prvcích (nelze ji posouvat).
   final bool minimal;
   final ValueChanged<bool>? onDragging;
 
@@ -26,7 +27,8 @@ class SeekBar extends ConsumerStatefulWidget {
 class _SeekBarState extends ConsumerState<SeekBar> {
   double? _drag;
 
-  /// Focused with the TV remote or a keyboard: Left/Right move the preview 10 s, releasing the key seeks.
+  /// Při ovládání televizním ovladačem nebo klávesnicí posouvají šipky vlevo/vpravo
+  /// náhled o 10 sekund. Po uvolnění klávesy se video přesune na vybraný čas.
   bool _focused = false;
 
   @override
@@ -121,7 +123,7 @@ class _SeekBarState extends ConsumerState<SeekBar> {
   }
 }
 
-/// Coloured stretches drawn on the seek bar (SponsorBlock segments); set by the SponsorBlock feature.
+/// Barevné úseky na posuvníku (segmenty SponsorBlock); nastavuje je funkce SponsorBlock.
 List<(Duration, Duration, Color)> Function(WidgetRef ref, String videoId)? seekBarSegments;
 
 class _Preview extends StatelessWidget {
@@ -178,7 +180,7 @@ class _Preview extends StatelessWidget {
   }
 }
 
-/// One frame of a storyboard sprite sheet, cropped out of its page.
+/// Jeden snímek z přehledového obrázku kapitol, oříznutý z celé stránky.
 class _StoryboardFrame extends StatelessWidget {
   const _StoryboardFrame({required this.board, required this.at});
 
@@ -237,7 +239,7 @@ class _BarPainter extends CustomPainter {
   final double buffered;
   final List<double> chapterStarts;
 
-  /// Coloured segments as (start, end) fractions of the duration.
+  /// Barevné úseky jako dvojice začátku a konce v poměru k celkové délce videa.
   final List<(double, double, Color)> segments;
   final bool thumb;
   final bool dragging;
@@ -247,7 +249,7 @@ class _BarPainter extends CustomPainter {
     final h = dragging ? size.height + 2 : size.height;
     final y = (size.height - h) / 2;
     final w = size.width;
-    // Chapter gaps: the bar is drawn as separate pieces.
+    // Mezery mezi kapitolami: posuvník se vykresluje po samostatných úsecích.
     final cuts = [0.0, ...chapterStarts.where((s) => s > 0 && s < 1), 1.0];
     const gap = 2.0;
     for (var i = 0; i + 1 < cuts.length; i++) {
