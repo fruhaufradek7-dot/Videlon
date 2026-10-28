@@ -1,3 +1,4 @@
+
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -10,8 +11,9 @@ import '../../innertube/models.dart';
 import '../../providers.dart';
 import '../../ui/widgets/common.dart';
 
-/// Reads subscriptions from a Google Takeout `subscriptions.csv` ("Channel Id,Channel Url,Channel Title") or a
-/// NewPipe export (`{"subscriptions": [{"url": …/channel/UC…, "name": …}]}`).
+/// Načítá odběry ze souboru Google Takeout `subscriptions.csv`
+/// („Channel Id,Channel Url,Channel Title“) nebo z exportu NewPipe
+/// (`{"subscriptions": [{"url": …/channel/UC…, "name": …}]}`).
 List<ChannelItem> parseSubscriptionsFile(String text) {
   final trimmed = text.trimLeft();
   if (trimmed.startsWith('{')) {
@@ -37,7 +39,8 @@ List<ChannelItem> parseSubscriptionsFile(String text) {
 
 String? _channelId(String url) => RegExp(r'(UC[\w-]{22})').firstMatch(url)?.group(1);
 
-/// Splits one CSV line, honouring quotes (channel titles can contain commas).
+/// Rozděluje jeden řádek CSV a respektuje uvozovky
+/// (názvy kanálů mohou obsahovat čárky).
 List<String> _csvCells(String line) {
   final cells = <String>[];
   final cur = StringBuffer();
@@ -62,7 +65,7 @@ List<String> _csvCells(String line) {
   return cells;
 }
 
-/// NewPipe's export format, which NewPipe, LibreTube and YouPipe all read.
+/// Exportní formát NewPipe, který umí načíst NewPipe, LibreTube i YouPipe.
 String exportSubscriptions(List<ChannelItem> channels) => const JsonEncoder.withIndent('  ').convert({
   'app_version': 'YouPipe',
   'app_version_int': 1,
@@ -73,7 +76,7 @@ String exportSubscriptions(List<ChannelItem> channels) => const JsonEncoder.with
 
 Future<void> importSubscriptions(BuildContext context, WidgetRef ref) async {
   final files = await FilePicker.pickFiles(
-    dialogTitle: 'Choose subscriptions.csv or a NewPipe export',
+    dialogTitle: 'Vyberte soubor subscriptions.csv nebo export NewPipe',
     type: FileType.custom,
     allowedExtensions: const ['csv', 'json'],
   );
@@ -82,12 +85,12 @@ Future<void> importSubscriptions(BuildContext context, WidgetRef ref) async {
   final channels = parseSubscriptionsFile(text);
   if (!context.mounted) return;
   if (channels.isEmpty) {
-    showSnack(context, 'No channels found in that file');
+    showSnack(context, 'V souboru nebyly nalezeny žádné kanály');
     return;
   }
   await ref.read(libraryProvider).importSubscriptions(channels);
   await ref.read(subscriptionsFeedServiceProvider).refresh(force: true);
-  if (context.mounted) showSnack(context, 'Imported ${channels.length} subscriptions');
+  if (context.mounted) showSnack(context, 'Importováno odběrů: ${channels.length}');
 }
 
 Future<void> exportSubscriptionsFile(BuildContext context, WidgetRef ref) async {
@@ -98,15 +101,15 @@ Future<void> exportSubscriptionsFile(BuildContext context, WidgetRef ref) async 
     bytes: bytes,
     mimeType: 'application/json',
   );
-  if (context.mounted && uri != null) showSnack(context, 'Exported ${channels.length} subscriptions');
+  if (context.mounted && uri != null) showSnack(context, 'Exportováno odběrů: ${channels.length}');
 }
 
-/// The ⋮ on All subscriptions.
+/// Nabídka ⋮ u položky Všechny odběry.
 Widget subscriptionsMenu(BuildContext context, WidgetRef ref) => PopupMenuButton<String>(
   icon: const Icon(Symbols.more_vert),
   onSelected: (v) => v == 'import' ? importSubscriptions(context, ref) : exportSubscriptionsFile(context, ref),
   itemBuilder: (_) => const [
-    PopupMenuItem(value: 'import', child: Text('Import (Google Takeout or NewPipe)')),
-    PopupMenuItem(value: 'export', child: Text('Export')),
+    PopupMenuItem(value: 'import', child: Text('Importovat (Google Takeout nebo NewPipe)')),
+    PopupMenuItem(value: 'export', child: Text('Exportovat')),
   ],
 );
