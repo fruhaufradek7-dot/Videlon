@@ -1,3 +1,4 @@
+
 import 'dart:async';
 
 import 'package:dio/dio.dart';
@@ -9,7 +10,7 @@ import '../innertube/models.dart';
 import '../util/format.dart';
 import 'db/app_database.dart';
 
-/// A subscription upload, from the channel's RSS feed.
+/// Video nahrané na odebíraném kanálu, načtené z jeho RSS kanálu.
 class FeedVideo {
   const FeedVideo(this.video, this.publishedAt, this.views);
 
@@ -18,15 +19,16 @@ class FeedVideo {
   final int? views;
 }
 
-/// The Subscriptions feed without an account (docs/data.md): every subscribed channel's
-/// `feeds/videos.xml?channel_id=` (its 15 latest uploads), cached in `FeedVideos`.
+/// Seznam videí z odběrů bez přihlášeného účtu (docs/data.md):
+/// RSS kanál každého odebíraného kanálu `feeds/videos.xml?channel_id=`
+/// (jeho 15 nejnovějších videí), uložený v mezipaměti `FeedVideos`.
 class SubscriptionsFeed {
   SubscriptionsFeed(this.db, {Dio? dio}) : _dio = dio ?? Dio(BaseOptions(receiveTimeout: const Duration(seconds: 20)));
 
   final AppDatabase db;
   final Dio _dio;
 
-  /// Refreshes run at most this often unless forced.
+  /// Obnovení probíhá nejvýše jednou za tento interval, pokud není vynuceno.
   static const minInterval = Duration(minutes: 30);
   DateTime? _lastRefresh;
   Future<void>? _running;
@@ -46,7 +48,7 @@ class SubscriptionsFeed {
     refreshing.value = true;
     try {
       final subs = await db.select(db.subscriptions).get();
-      // Six channels at a time: quick, without hammering YouTube.
+      // Zpracovávat šest kanálů současně: rychle a bez zbytečného zatěžování YouTube.
       var next = 0;
       Future<void> worker() async {
         while (next < subs.length) {
@@ -54,13 +56,13 @@ class SubscriptionsFeed {
           try {
             await _fetch(s.channelId, s.name);
           } catch (e) {
-            debugPrint('YouPipe: RSS ${s.channelId} failed: $e');
+            debugPrint('YouPipe: Načtení RSS kanálu ${s.channelId} se nezdařilo: $e');
           }
         }
       }
 
       await Future.wait([for (var i = 0; i < 6; i++) worker()]);
-      // Keep only the last 60 days.
+      // Zachovat pouze videa z posledních 60 dní.
       await (db.delete(
         db.feedVideos,
       )..where((f) => f.publishedAt.isSmallerThanValue(DateTime.now().subtract(const Duration(days: 60))))).go();
@@ -84,7 +86,8 @@ class SubscriptionsFeed {
     });
   }
 
-  /// The feed, newest first, with the channel avatars from `Subscriptions`.
+  /// Vrátí seznam videí od nejnovějších po nejstarší
+  /// včetně avatarů kanálů z tabulky `Subscriptions`.
   Stream<List<FeedVideo>> watch({int limit = 300}) {
     final q =
         db.select(db.feedVideos).join([
@@ -119,7 +122,7 @@ class SubscriptionsFeed {
   }
 }
 
-/// Parses a channel's Atom feed into `FeedVideos` rows.
+/// Převede Atom RSS kanálu na záznamy `FeedVideos`.
 List<FeedVideosCompanion> parseRss(String xml, {required String channelId, required String channelName}) {
   final doc = XmlDocument.parse(xml);
   return [
