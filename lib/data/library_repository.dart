@@ -1,9 +1,10 @@
+
 import 'package:drift/drift.dart';
 
 import '../innertube/models.dart';
 import 'db/app_database.dart';
 
-/// A history row: the video, when it was last watched, and where it stopped.
+/// Záznam historie: video, čas posledního sledování a místo, kde bylo přehrávání zastaveno.
 class HistoryEntry {
   const HistoryEntry(this.video, this.watchedAt, this.position, this.duration);
 
@@ -12,7 +13,7 @@ class HistoryEntry {
   final Duration position;
   final Duration duration;
 
-  /// 0..1 for the red "watched" bar under thumbnails.
+  /// Hodnota 0–1 pro červený pruh sledování pod miniaturami.
   double get progress =>
       duration.inMilliseconds <= 0 ? 0 : (position.inMilliseconds / duration.inMilliseconds).clamp(0, 1);
 }
@@ -25,19 +26,20 @@ class LocalPlaylistSummary {
   final String? thumbnail;
 }
 
-/// The on-device library (docs/data.md): history, likes, Watch later, playlists, subscriptions, searches.
+/// Knihovna uložená v zařízení (docs/data.md): historie, oblíbená videa, Přehrát později,
+/// playlisty, odběry a vyhledávání.
 class LibraryRepository {
   LibraryRepository(this.db);
 
   final AppDatabase db;
 
-  /// Mirrors likes, subscriptions and Watch later to the signed-in account (set by the account feature).
-  /// Best-effort: the local library stays the source of truth.
+  /// Synchronizuje oblíbená videa, odběry a seznam Přehrát později s přihlášeným účtem.
+  /// Synchronizace je pouze doplňková; hlavním zdrojem dat zůstává místní knihovna.
   void Function(String action, String id, bool on)? remoteSync;
 
   Future<void> _upsertVideo(VideoItem v) => db.into(db.videos).insertOnConflictUpdate(videoToCompanion(v));
 
-  // History ------------------------------------------------------------------------------------------------
+  // Historie ------------------------------------------------------------------------------------------------
 
   Future<void> recordWatch(VideoItem video, {Duration? position, Duration? duration}) async {
     await _upsertVideo(video);
@@ -65,7 +67,8 @@ class LibraryRepository {
         WatchHistoryCompanion(positionMs: Value(position.inMilliseconds), durationMs: Value(duration.inMilliseconds)),
       );
 
-  /// Where to resume [videoId]: null when it was barely started or nearly finished.
+  /// Vrátí pozici, od které pokračovat v přehrávání [videoId].
+  /// Pokud video bylo sotva spuštěno nebo je téměř dokoukané, vrátí null.
   Future<Duration?> resumePosition(String videoId) async {
     final row = await (db.select(db.watchHistory)..where((h) => h.videoId.equals(videoId))).getSingleOrNull();
     if (row == null || row.durationMs <= 0) return null;
@@ -92,7 +95,7 @@ class LibraryRepository {
     );
   }
 
-  /// Watch progress by video id (for the red bars under thumbnails everywhere).
+  /// Průběh sledování podle ID videa (pro červené pruhy pod miniaturami).
   Stream<Map<String, double>> watchProgress() => db
       .select(db.watchHistory)
       .watch()
@@ -117,7 +120,7 @@ class LibraryRepository {
 
   Future<void> clearHistory() => db.delete(db.watchHistory).go();
 
-  // Likes --------------------------------------------------------------------------------------------------
+  // Oblíbená videa ------------------------------------------------------------------------------------------
 
   Future<void> setLiked(VideoItem video, bool liked) async {
     remoteSync?.call('like', video.id, liked);
@@ -141,7 +144,7 @@ class LibraryRepository {
     return q.watch().map((rows) => [for (final r in rows) videoFromRow(r.readTable(db.videos))]);
   }
 
-  // Playlists, Watch later ---------------------------------------------------------------------------------
+  // Playlisty a Přehrát později ------------------------------------------------------------------------------
 
   Future<int> watchLaterId() async {
     final existing = await (db.select(db.playlists)..where((p) => p.isWatchLater.equals(true))).getSingleOrNull();
@@ -189,7 +192,7 @@ class LibraryRepository {
   Future<void> removeFromPlaylist(int playlistId, String videoId) =>
       (db.delete(db.playlistItems)..where((i) => i.playlistId.equals(playlistId) & i.videoId.equals(videoId))).go();
 
-  /// Moves the item at [from] to [to] (indexes in the current order).
+  /// Přesune položku z pozice [from] na pozici [to] v aktuálním pořadí.
   Future<void> movePlaylistItem(int playlistId, int from, int to) => db.transaction(() async {
     final items =
         await (db.select(db.playlistItems)
@@ -229,7 +232,7 @@ class LibraryRepository {
   Stream<Playlist?> watchPlaylist(int id) =>
       (db.select(db.playlists)..where((p) => p.id.equals(id))).watchSingleOrNull();
 
-  /// All local playlists, Watch later first, with item counts and the first video's thumbnail.
+  /// Všechny místní playlisty, nejprve Přehrát později, včetně počtu položek a miniatury prvního videa.
   Stream<List<LocalPlaylistSummary>> localPlaylists() {
     final count = db.playlistItems.id.count();
     final q =
@@ -257,7 +260,7 @@ class LibraryRepository {
     });
   }
 
-  // Saved YouTube playlists --------------------------------------------------------------------------------
+  // Uložené playlisty YouTube --------------------------------------------------------------------------------
 
   Future<void> setPlaylistSaved(PlaylistItem p, bool saved) async {
     if (saved) {
@@ -295,7 +298,7 @@ class LibraryRepository {
         ],
       );
 
-  // Subscriptions ------------------------------------------------------------------------------------------
+  // Odběry ---------------------------------------------------------------------------------------------------
 
   Future<void> setSubscribed(ChannelItem channel, bool subscribed) async {
     remoteSync?.call('subscribe', channel.id, subscribed);
@@ -316,7 +319,7 @@ class LibraryRepository {
     }
   }
 
-  /// Adds many at once (imports); existing ones keep their date.
+  /// Hromadný import odběrů; stávající odběry si ponechají původní datum.
   Future<int> importSubscriptions(List<ChannelItem> channels) async {
     var added = 0;
     await db.batch((b) {
@@ -350,13 +353,14 @@ class LibraryRepository {
       ChannelItem(id: r.channelId, name: r.name, avatar: r.avatar),
   ];
 
-  /// Updates a subscription's avatar/name when a fresher one is seen (channel page, video info).
+  /// Aktualizuje název a avatar odběru, pokud jsou k dispozici novější údaje.
+  /// Používá se na stránce kanálu a při načítání informací o videu.
   Future<void> refreshSubscription(ChannelItem c) =>
       (db.update(db.subscriptions)..where((s) => s.channelId.equals(c.id))).write(
         SubscriptionsCompanion(name: Value(c.name), avatar: c.avatar == null ? const Value.absent() : Value(c.avatar)),
       );
 
-  // Search history -----------------------------------------------------------------------------------------
+  // Historie vyhledávání -------------------------------------------------------------------------------------
 
   Future<void> addSearch(String query) => db
       .into(db.searchHistory)
