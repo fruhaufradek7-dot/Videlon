@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,7 +12,7 @@ import '../../ui/widgets/common.dart';
 import '../../ui/widgets/top_bar.dart';
 import '../../ui/widgets/video_tiles.dart';
 
-/// The search field page: history (clock icons) and suggestions as you type.
+/// Stránka vyhledávání: historie a návrhy při psaní.
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key, this.initial});
 
@@ -34,7 +35,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final query = q.trim();
     if (query.isEmpty) return;
     if (ref.read(settingsProvider).saveSearchHistory) ref.read(libraryProvider).addSearch(query);
-    // The keyboard closes with the search, as on YouTube; otherwise it stays up over the results and the watch page.
+    // Po spuštění vyhledávání se zavře klávesnice.
     FocusManager.instance.primaryFocus?.unfocus();
     context.pushReplacement(resultsPath(context, query));
   }
@@ -83,10 +84,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         context: context,
                         builder: (d) => AlertDialog(
                           title: Text(text),
-                          content: const Text('Remove from search history?'),
+                          content: const Text('Odebrat z historie vyhledávání?'),
                           actions: [
-                            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
-                            TextButton(onPressed: () => Navigator.pop(d, true), child: const Text('Remove')),
+                            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Zrušit')),
+                            TextButton(onPressed: () => Navigator.pop(d, true), child: const Text('Odebrat')),
                           ],
                         ),
                       );
@@ -101,7 +102,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 }
 
-/// YouTube's rounded grey search field.
+/// Zaoblené šedé vyhledávací pole.
 class SearchField extends StatelessWidget {
   const SearchField({
     super.key,
@@ -135,13 +136,12 @@ class SearchField extends StatelessWidget {
         onSubmitted: onSubmitted,
         textInputAction: TextInputAction.search,
         style: const TextStyle(fontSize: 16),
-        decoration: const InputDecoration(hintText: 'Search YouPipe', isCollapsed: true, border: InputBorder.none),
+        decoration: const InputDecoration(hintText: 'Hledat na YouPipe', isCollapsed: true, border: InputBorder.none),
       ),
     );
   }
 
-  /// The read-only field (on the results page) is a button, so the TV remote's Select opens the search page too (a
-  /// read-only TextField's onTap is touch-only).
+  /// Pole na stránce výsledků otevře znovu vyhledávání i při ovládání dálkovým ovladačem.
   Widget _pill(BuildContext context) {
     final text = controller?.text ?? '';
     return SizedBox(
@@ -159,7 +159,7 @@ class SearchField extends StatelessWidget {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  text.isEmpty ? 'Search YouPipe' : text,
+                  text.isEmpty ? 'Hledat na YouPipe' : text,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 16, color: text.isEmpty ? context.yt.textSecondary : null),
@@ -173,7 +173,7 @@ class SearchField extends StatelessWidget {
   }
 }
 
-/// Search results with YouTube's filter sheet.
+/// Výsledky vyhledávání s filtrováním.
 class ResultsScreen extends ConsumerWidget {
   const ResultsScreen({super.key, required this.query, this.params});
 
@@ -222,8 +222,8 @@ class ResultsScreen extends ConsumerWidget {
                   hasScrollBody: false,
                   child: EmptyView(
                     icon: Symbols.search_off,
-                    title: 'No results found',
-                    message: 'Try different keywords',
+                    title: 'Nebyly nalezeny žádné výsledky',
+                    message: 'Zkuste jiná klíčová slova',
                   ),
                 )
               else
@@ -260,7 +260,7 @@ class ResultsScreen extends ConsumerWidget {
           controller: scroll,
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           children: [
-            const Text('Search filters', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+            const Text('Filtry vyhledávání', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             for (final g in groups) ...[
               Padding(
