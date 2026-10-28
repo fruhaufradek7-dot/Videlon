@@ -1,3 +1,4 @@
+
 import 'dart:async';
 
 import 'dart:math' as math;
@@ -15,9 +16,12 @@ import 'video_menu.dart';
 import '../layout.dart';
 
 String videoMeta(VideoItem v, {bool withChannel = true}) =>
-    [if (withChannel) ?v.channelName, ?v.viewsText, ?v.publishedText].where((s) => s.isNotEmpty).join(' · ');
+    [if (withChannel) ?v.channelName, ?v.viewsText, ?v.publishedText]
+        .where((s) => s.isNotEmpty)
+        .join(' · ');
 
-/// The duration / LIVE badge in a thumbnail's corner, and the red watched bar along its bottom.
+/// Odznak s délkou videa nebo živým vysíláním v rohu náhledu
+/// a červený pruh označující zhlédnutou část videa.
 class ThumbnailOverlay extends ConsumerWidget {
   const ThumbnailOverlay({super.key, required this.video, this.badgeInset = 8});
 
@@ -45,7 +49,7 @@ class ThumbnailOverlay extends ConsumerWidget {
                       children: [
                         Icon(Symbols.sensors, size: 14, color: Colors.white),
                         SizedBox(width: 2),
-                        Text('LIVE', style: YtText.badge),
+                        Text('ŽIVĚ', style: YtText.badge),
                       ],
                     )
                   : Text(video.durationText!, style: YtText.badge),
@@ -68,17 +72,18 @@ class ThumbnailOverlay extends ConsumerWidget {
   }
 }
 
-/// The Home/search/related card: full-width 16:9 thumbnail, then avatar, title, meta and ⋮.
+/// Karta videa na domovské stránce, ve vyhledávání a v doporučeních:
+/// náhled 16:9, avatar, název, informace a nabídka ⋮.
 class VideoCard extends ConsumerWidget {
   const VideoCard(this.video, {super.key, this.onTap, this.inset = false, this.grid = false});
 
   final VideoItem video;
   final VoidCallback? onTap;
 
-  /// Rounded thumbnail with side margins (the watch page's related list) instead of edge to edge.
+  /// Zaoblený náhled s bočními okraji, například v seznamu doporučených videí.
   final bool inset;
 
-  /// A cell of [VideoGridSliver] (tablets, TVs): rounded thumbnail, no outer margins (the grid spaces cells).
+  /// Buňka mřížky [VideoGridSliver] na tabletech a televizorech.
   final bool grid;
 
   @override
@@ -89,7 +94,7 @@ class VideoCard extends ConsumerWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Decoded at the size it's shown (a grid cell on tablets, the screen width on phones).
+          // Obrázek se načítá v rozměrech, ve kterých se skutečně zobrazuje.
           LayoutBuilder(builder: (context, box) => YtImage(video.thumbnailOrDefault, width: box.maxWidth)),
           ThumbnailOverlay(video: video),
         ],
@@ -113,7 +118,7 @@ class VideoCard extends ConsumerWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // No avatar when the channel is unknown (a channel's own featured video), like YouTube.
+                    // Pokud kanál není známý, avatar se nezobrazí.
                     if (video.channelAvatar != null || video.channelName != null) ...[
                       GestureDetector(
                         onTap: video.channelId == null ? null : () => openChannel(context, ref, video.channelId!),
@@ -166,7 +171,7 @@ class MenuButton extends StatelessWidget {
   );
 }
 
-/// The compact row: 160dp rounded thumbnail on the left (playlists, history, library lists).
+/// Kompaktní řádek s náhledem vlevo, používaný v playlistech, historii a knihovně.
 class VideoRow extends ConsumerWidget {
   const VideoRow(
     this.video, {
@@ -182,11 +187,11 @@ class VideoRow extends ConsumerWidget {
   final VideoItem video;
   final VoidCallback? onTap;
 
-  /// E.g. the index number in a playlist, or a drag handle.
+  /// Například pořadové číslo v playlistu nebo úchyt pro přesouvání.
   final Widget? leading;
   final Widget? trailing;
 
-  /// Adds a "Remove from …" entry to the ⋮ menu.
+  /// Přidá do nabídky ⋮ položku pro odebrání videa.
   final VoidCallback? onRemove;
   final String? removeLabel;
   final double thumbWidth;
@@ -254,7 +259,7 @@ class VideoRow extends ConsumerWidget {
   }
 }
 
-/// A 9:16 Shorts card with the title over the bottom of the thumbnail.
+/// Karta krátkého videa s poměrem stran 9:16 a názvem ve spodní části náhledu.
 class ShortCard extends ConsumerWidget {
   const ShortCard(this.video, {super.key, this.width = 160, this.onTap});
 
@@ -337,9 +342,9 @@ class ShortCard extends ConsumerWidget {
   );
 }
 
-/// The Shorts shelf: our Shorts glyph in red, "Shorts", and a horizontal row of 9:16 cards.
+/// Sekce krátkých videí s červenou ikonou a vodorovným seznamem karet.
 class ShortsShelf extends StatelessWidget {
-  const ShortsShelf({super.key, required this.items, this.title = 'Shorts'});
+  const ShortsShelf({super.key, required this.items, this.title = 'Krátká videa'});
 
   final List<VideoItem> items;
   final String title;
@@ -375,7 +380,8 @@ class ShortsShelf extends StatelessWidget {
   );
 }
 
-/// A channel search result / list entry: avatar, name, handle and subscribers, Subscribe.
+/// Výsledek vyhledávání kanálu: avatar, název, uživatelské jméno,
+/// počet odběratelů a tlačítko pro odběr.
 class ChannelRow extends ConsumerWidget {
   const ChannelRow(this.channel, {super.key, this.avatarSize = 64, this.showSubscribe = true});
 
@@ -426,21 +432,21 @@ class ChannelRow extends ConsumerWidget {
   );
 }
 
-/// Unsubscribing asks first, like YouTube (it also reaches the account when signed in).
+/// Před zrušením odběru se zobrazí potvrzovací dialog.
 Future<bool> confirmUnsubscribe(BuildContext context, String channelName) async =>
     await showDialog<bool>(
       context: context,
       builder: (dialog) => AlertDialog(
-        content: Text('Unsubscribe from $channelName?'),
+        content: Text('Opravdu chcete zrušit odběr kanálu $channelName?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialog, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(dialog, true), child: const Text('Unsubscribe')),
+          TextButton(onPressed: () => Navigator.pop(dialog, false), child: const Text('Zrušit')),
+          TextButton(onPressed: () => Navigator.pop(dialog, true), child: const Text('Zrušit odběr')),
         ],
       ),
     ) ==
     true;
 
-/// Subscribe / Subscribed. Subscriptions live on this device (docs/data.md).
+/// Tlačítka Odebírat / Odebíráte. Odběry se ukládají do tohoto zařízení.
 class SubscribeButton extends ConsumerWidget {
   const SubscribeButton(this.channel, {super.key, this.compact = false});
 
@@ -457,7 +463,7 @@ class SubscribeButton extends ConsumerWidget {
       if (!subscribed) {
         unawaited(ref.read(subscriptionsFeedServiceProvider).refresh(force: true));
       }
-      if (context.mounted) showSnack(context, subscribed ? 'Subscription removed' : 'Subscription added');
+      if (context.mounted) showSnack(context, subscribed ? 'Odběr byl zrušen' : 'Odběr byl přidán');
     }
 
     return FocusHighlight(
@@ -480,7 +486,7 @@ class SubscribeButton extends ConsumerWidget {
                   const SizedBox(width: 6),
                 ],
                 Text(
-                  subscribed ? 'Subscribed' : 'Subscribe',
+                  subscribed ? 'Odebíráte' : 'Odebírat',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -500,7 +506,7 @@ class SubscribeButton extends ConsumerWidget {
   }
 }
 
-/// A playlist row: a thumbnail with the "N videos" strip on its right edge.
+/// Řádek playlistu s náhledem a počtem videí na pravém okraji.
 class PlaylistRow extends ConsumerWidget {
   const PlaylistRow(this.playlist, {super.key, this.onTap});
 
@@ -539,7 +545,7 @@ class PlaylistRow extends ConsumerWidget {
   );
 }
 
-/// A playlist thumbnail: the image with a stacked-card edge and a count badge, like YouTube's.
+/// Náhled playlistu s vrstvenými kartami a odznakem s počtem videí.
 class PlaylistThumb extends StatelessWidget {
   const PlaylistThumb({super.key, this.thumbnail, this.count, this.width = YtSizes.rowThumbWidth, this.icon});
 
@@ -547,7 +553,7 @@ class PlaylistThumb extends StatelessWidget {
   final String? count;
   final double width;
 
-  /// Shown instead of an image (Watch later, Liked videos).
+  /// Zobrazí se místo obrázku, například u položek Přehrát později a Oblíbená videa.
   final IconData? icon;
 
   @override
@@ -593,7 +599,7 @@ class PlaylistThumb extends StatelessWidget {
                   children: [
                     const Icon(Symbols.playlist_play, size: 14, color: Colors.white),
                     const SizedBox(width: 2),
-                    // "12 videos" → "12"; an empty playlist's "No videos" → "0".
+                    // „12 videos“ → „12“; prázdný playlist „No videos“ → „0“.
                     Text(
                       count!.startsWith('No ') ? '0' : count!.replaceAll(' videos', '').replaceAll(' video', ''),
                       style: YtText.badge,
@@ -608,14 +614,14 @@ class PlaylistThumb extends StatelessWidget {
   );
 }
 
-/// Videos as YouTube lays them out for the width (docs/ui.md): one full-width card per row on phones, a grid of
-/// [feedColumns] cards on tablets and TVs.
+/// Videa se rozmisťují podle šířky obrazovky:
+/// na telefonech po jednom, na tabletech a televizorech do mřížky.
 class VideoGridSliver extends StatelessWidget {
   const VideoGridSliver(this.videos, {super.key});
 
   final List<VideoItem> videos;
 
-  /// The text under a grid card's thumbnail: avatar row with a two-line title and the meta line.
+  /// Výška textové části karty pod náhledem.
   static const _textHeight = 100.0;
   static const _spacing = 16.0;
   static const _sidePadding = 16.0;
@@ -645,8 +651,7 @@ class VideoGridSliver extends StatelessWidget {
   );
 }
 
-/// Videos with a Shorts shelf among them (Home, Subscriptions): after [phoneShelfAt] cards on a phone, after the
-/// first row of the grid on tablets and TVs.
+/// Seznam videí s vloženou sekcí krátkých videí na domovské stránce a v odběrech.
 class VideosWithShortsSliver extends StatelessWidget {
   const VideosWithShortsSliver({super.key, required this.videos, required this.shorts, required this.phoneShelfAt});
 
@@ -670,8 +675,8 @@ class VideosWithShortsSliver extends StatelessWidget {
   );
 }
 
-/// Feed entries (search results, channel tabs) with each run of videos laid out by [VideoGridSliver], and Shorts,
-/// shelves, channels and playlists full width between them. On a phone this is the plain list it always was.
+/// Položky ve feedu (výsledky hledání a karty kanálů) seskupené do bloků.
+/// Na telefonu se zobrazují jako běžný seznam.
 class FeedSliver extends StatelessWidget {
   const FeedSliver(this.entries, {super.key});
 
@@ -685,7 +690,7 @@ class FeedSliver extends StatelessWidget {
           VideoGridSliver(videos)
         else if (run case final FeedEntry e)
           SliverToBoxAdapter(
-            // Channel and playlist rows keep a readable width on tablets and TVs; shelves use the full width.
+            // Řádky kanálů a playlistů mají na tabletech a televizorech omezenou šířku.
             child: e is ItemEntry && e.item is! VideoItem
                 ? Align(
                     alignment: Alignment.centerLeft,
@@ -700,8 +705,8 @@ class FeedSliver extends StatelessWidget {
   );
 }
 
-/// [FeedSliver]'s grouping, in order: each run of consecutive videos (not Shorts) as one `List<VideoItem>`, and every
-/// other entry (Shorts, shelves, channels, playlists) on its own.
+/// Seskupí po sobě jdoucí běžná videa do jednoho seznamu.
+/// Krátká videa, kanály a playlisty zůstanou samostatně.
 List<Object> feedRuns(List<FeedEntry> entries) {
   final out = <Object>[];
   var run = <VideoItem>[];
@@ -718,8 +723,7 @@ List<Object> feedRuns(List<FeedEntry> entries) {
   return out;
 }
 
-/// Renders a feed entry the way YouTube does: videos as cards, channels and playlists as rows, Shorts shelves,
-/// and titled shelves as horizontal rows of smaller cards.
+/// Zobrazí položku feedu jako kartu videa, kanálu, playlistu nebo sekci.
 class FeedEntryView extends ConsumerWidget {
   const FeedEntryView(this.entry, {super.key});
 
@@ -732,14 +736,14 @@ class FeedEntryView extends ConsumerWidget {
     ItemEntry(item: final ChannelItem c) => Padding(padding: const EdgeInsets.only(bottom: 12), child: ChannelRow(c)),
     ItemEntry(item: final PlaylistItem p) => Padding(padding: const EdgeInsets.only(bottom: 12), child: PlaylistRow(p)),
     ShelfEntry(shorts: true, :final title, :final items) => ShortsShelf(
-      title: title.isEmpty ? 'Shorts' : title,
+      title: title.isEmpty ? 'Krátká videa' : title,
       items: items.whereType<VideoItem>().toList(),
     ),
     ShelfEntry(:final title, :final items) => HorizontalShelf(title: title, items: items),
   };
 }
 
-/// A titled horizontal row of small cards (a channel's shelves, "People also watched").
+/// Vodorovná sekce menších karet, například videa z kanálu nebo „Lidé také sledovali“.
 class HorizontalShelf extends ConsumerWidget {
   const HorizontalShelf({super.key, required this.title, required this.items});
 
@@ -778,7 +782,7 @@ class HorizontalShelf extends ConsumerWidget {
   }
 }
 
-/// A small card for horizontal shelves and carousels.
+/// Malá karta pro vodorovné sekce a karusely.
 class SmallCard extends ConsumerWidget {
   const SmallCard(this.item, {super.key, this.width = 240, this.progress});
 
