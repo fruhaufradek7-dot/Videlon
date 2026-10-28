@@ -1,25 +1,27 @@
+
 import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// Why a video can't be played, from `youpipe/stream_extractor`'s error codes (docs/streaming.md).
+/// Důvod, proč nelze video přehrát, podle chybových kódů
+/// `youpipe/stream_extractor` (docs/streaming.md).
 class VideoUnavailable implements Exception {
   VideoUnavailable(this.code, this.message);
 
-  /// `AGE_RESTRICTED`, `GEO_RESTRICTED`, `UNAVAILABLE`, `RECAPTCHA`, `BOT_CHECK`, `NO_STREAMS` or
-  /// `EXTRACTION_FAILED`.
+  /// `AGE_RESTRICTED`, `GEO_RESTRICTED`, `UNAVAILABLE`, `RECAPTCHA`,
+  /// `BOT_CHECK`, `NO_STREAMS` nebo `EXTRACTION_FAILED`.
   final String code;
   final String message;
 
   String get friendly => switch (code) {
-    'AGE_RESTRICTED' => 'This video is age-restricted',
-    'GEO_RESTRICTED' => 'This video is not available in your country',
-    'UNAVAILABLE' => 'This video is unavailable',
-    'RECAPTCHA' => 'YouTube is rate-limiting this device. Try again later',
-    'BOT_CHECK' => "YouTube wants to confirm you're not a bot. Try again in a while",
-    'NO_STREAMS' => 'No playable stream for this video',
-    _ => 'Couldn\'t load this video',
+    'AGE_RESTRICTED' => 'Toto video je věkově omezené',
+    'GEO_RESTRICTED' => 'Toto video není ve vaší zemi dostupné',
+    'UNAVAILABLE' => 'Toto video není dostupné',
+    'RECAPTCHA' => 'YouTube omezuje požadavky z tohoto zařízení. Zkuste to později znovu',
+    'BOT_CHECK' => 'YouTube potřebuje ověřit, že nejste robot. Zkuste to za chvíli znovu',
+    'NO_STREAMS' => 'Pro toto video není dostupný žádný přehratelný stream',
+    _ => 'Toto video se nepodařilo načíst',
   };
 
   @override
@@ -43,7 +45,8 @@ class Chapter {
   final String? thumbnail;
 }
 
-/// A storyboard level: sprite sheets of [framesPerPageX] × [framesPerPageY] frames, one per [durationPerFrame].
+/// Úroveň storyboardu: sady obrázků s [framesPerPageX] × [framesPerPageY]
+/// snímky, přičemž každý snímek odpovídá hodnotě [durationPerFrame].
 class Storyboard {
   const Storyboard({
     required this.urls,
@@ -64,11 +67,12 @@ class Storyboard {
   final int framesPerPageY;
 }
 
-/// Everything about one video that comes from NewPipeExtractor: metadata and every way to play it.
+/// Veškeré informace o jednom videu získané pomocí NewPipeExtractor:
+/// metadata a všechny dostupné možnosti přehrávání.
 class VideoInfo {
   VideoInfo._(this.raw, {this.manifestPath});
 
-  /// A downloaded video's info, from the library (no network).
+  /// Informace o staženém videu z knihovny (bez připojení k síti).
   VideoInfo.offline({
     required String videoId,
     required String title,
@@ -85,7 +89,7 @@ class VideoInfo {
 
   final Map<Object?, Object?> raw;
 
-  /// The DASH manifest written to a local file, when there is one.
+  /// Cesta k místnímu souboru s manifestem DASH, pokud existuje.
   final String? manifestPath;
 
   String get videoId => raw['videoId'] as String;
@@ -107,13 +111,15 @@ class VideoInfo {
   List<int> get dashHeights => (raw['dashHeights'] as List?)?.cast<int>() ?? const [];
   String? get dashCodec => raw['dashCodec'] as String?;
 
-  /// The User-Agent each source's URLs need: they're bound to the InnerTube client that produced them, and the DASH
-  /// and muxed streams can come from different clients.
+  /// Hlavička User-Agent potřebná pro adresy jednotlivých zdrojů:
+  /// adresy jsou svázané s klientem InnerTube, který je vytvořil.
+  /// Streamy DASH a muxed mohou pocházet od různých klientů.
   String get dashUserAgent => raw['dashUserAgent'] as String? ?? '';
   String get muxedUserAgent => raw['muxedUserAgent'] as String? ?? '';
   String get hlsUserAgent => raw['hlsUserAgent'] as String? ?? '';
 
-  /// What can be downloaded: (height, total bytes), lowest first.
+  /// Dostupné možnosti stažení: (rozlišení, celková velikost v bajtech),
+  /// seřazené od nejnižšího rozlišení.
   List<(int, int)> get downloadOptions => [
     for (final o in (raw['downloadOptions'] as List? ?? const []).cast<Map>())
       ((o['height'] as num).toInt(), (o['size'] as num? ?? 0).toInt()),
@@ -151,7 +157,8 @@ class VideoInfo {
       ),
   ];
 
-  /// When the stream URLs stop working (their `expire` parameter), or an hour from now if they don't say.
+  /// Čas vypršení platnosti adres streamů podle parametru `expire`,
+  /// případně za jednu hodinu, pokud tento údaj není k dispozici.
   DateTime get expires {
     final url = muxedUrl ?? hlsUrl ?? '';
     final m = RegExp(r'[?&/]expire[=/](\d+)').firstMatch(url);
@@ -160,7 +167,8 @@ class VideoInfo {
   }
 }
 
-/// Calls `youpipe/stream_extractor` and caches results until 10 minutes before their URLs expire.
+/// Volá `youpipe/stream_extractor` a ukládá výsledky do mezipaměti
+/// až do deseti minut před vypršením platnosti adres.
 class VideoInfoService {
   VideoInfoService({this.hl = 'en', this.gl = 'US'});
 
@@ -180,7 +188,8 @@ class VideoInfoService {
         DateTime.now().isBefore(cached.expires.subtract(const Duration(minutes: 10)))) {
       return Future.value(cached);
     }
-    // The callback must not return the removed future: whenComplete would then wait on itself.
+    // Callback nesmí vrátit právě odstraňovaný Future:
+    // metoda whenComplete by pak čekala sama na sebe.
     return _pending[key] ??= _fetch(videoId, maxHeight, key).whenComplete(() {
       _pending.remove(key);
     });
@@ -197,8 +206,11 @@ class VideoInfoService {
           'maxHeight': maxHeight,
         });
       } on PlatformException catch (e) {
-        // YouTube now and then answers NewPipe with an HTML page instead of JSON; a second try usually works.
-        if (e.code != 'EXTRACTION_FAILED' || attempt > 0) throw VideoUnavailable(e.code, e.message ?? e.code);
+        // YouTube občas pošle NewPipe místo JSON stránky HTML;
+        // druhý pokus obvykle pomůže.
+        if (e.code != 'EXTRACTION_FAILED' || attempt > 0) {
+          throw VideoUnavailable(e.code, e.message ?? e.code);
+        }
         await Future<void>.delayed(const Duration(seconds: 1));
       }
     }
