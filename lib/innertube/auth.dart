@@ -1,21 +1,22 @@
+
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 
-/// Parses a `name=value; name2=value2` cookie header.
+/// Zpracuje hlavičku cookies ve formátu `name=value; name2=value2`.
 Map<String, String> parseCookies(String cookie) => {
   for (final part in cookie.split(';'))
     if (part.trim().split('=') case [final name, ...final value] when name.isNotEmpty) name.trim(): value.join('='),
 };
 
-/// True when the cookie belongs to a signed-in Google session.
+/// Vrátí true, pokud cookies patří k přihlášené relaci Google.
 bool isSignedInCookie(String? cookie) {
   if (cookie == null) return false;
   final c = parseCookies(cookie);
   return c.containsKey('SAPISID') || c.containsKey('__Secure-3PAPISID');
 }
 
-/// The `Authorization` header youtube.com sends for signed-in requests:
+/// Hlavička `Authorization`, kterou YouTube používá pro přihlášené požadavky:
 /// `SAPISIDHASH <unix seconds>_<sha1("<seconds> <SAPISID> <origin>")>`.
 String? sapisidHashHeader(String cookie, {String origin = 'https://www.youtube.com', DateTime? now}) {
   final c = parseCookies(cookie);
