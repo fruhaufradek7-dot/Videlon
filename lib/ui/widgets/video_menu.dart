@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -18,14 +19,15 @@ Future<void> shareVideo(VideoItem v) => SharePlus.instance.share(
   ),
 );
 
-/// Hook for the download manager (Phase 3): starts a download from the ⋮ menu. Null hides the entry.
+/// Napojení na správce stahování (3. fáze): spustí stahování z nabídky ⋮.
+/// Pokud je hodnota null, položka nabídky se nezobrazí.
 typedef DownloadStarter = Future<void> Function(BuildContext context, WidgetRef ref, VideoItem video);
 DownloadStarter? downloadStarter;
 
-/// The watch page's Download pill, showing progress (set by the downloads feature).
+/// Tvůrce tlačítka Stáhnout na stránce přehrávání, které zobrazuje průběh stahování.
 Widget Function(BuildContext context, WidgetRef ref, VideoItem video)? downloadPillBuilder;
 
-/// The ⋮ sheet under any video, with YouTube's entries and order.
+/// Nabídka ⋮ u videa s položkami YouTube v původním pořadí.
 Future<void> showVideoMenu(
   BuildContext context,
   WidgetRef ref,
@@ -45,17 +47,17 @@ Future<void> showVideoMenu(
           if (playing && !video.isShort)
             _MenuTile(
               icon: Symbols.queue_play_next,
-              label: 'Play next in queue',
+              label: 'Přehrát jako další ve frontě',
               onTap: () {
                 close();
                 ref.read(playbackProvider.notifier).playNext(video);
-                showSnack(context, 'Video will play next');
+                showSnack(context, 'Video se přehraje jako další');
               },
             ),
           _WatchLaterTile(video: video, close: close, context: context),
           _MenuTile(
             icon: Symbols.playlist_add,
-            label: 'Save to playlist',
+            label: 'Uložit do playlistu',
             onTap: () {
               close();
               showSaveToPlaylist(context, ref, video);
@@ -64,7 +66,7 @@ Future<void> showVideoMenu(
           if (downloadStarter != null && !video.isLive)
             _MenuTile(
               icon: Symbols.download,
-              label: 'Download video',
+              label: 'Stáhnout video',
               onTap: () {
                 close();
                 downloadStarter!(context, ref, video);
@@ -72,7 +74,7 @@ Future<void> showVideoMenu(
             ),
           _MenuTile(
             icon: Symbols.share,
-            label: 'Share',
+            label: 'Sdílet',
             onTap: () {
               close();
               shareVideo(video);
@@ -81,7 +83,7 @@ Future<void> showVideoMenu(
           if (video.channelId != null)
             _MenuTile(
               icon: Symbols.account_box,
-              label: 'Go to channel',
+              label: 'Přejít na kanál',
               onTap: () {
                 close();
                 openChannel(context, ref, video.channelId!);
@@ -90,7 +92,7 @@ Future<void> showVideoMenu(
           if (onRemove != null)
             _MenuTile(
               icon: Symbols.delete,
-              label: removeLabel ?? 'Remove',
+              label: removeLabel ?? 'Odebrat',
               onTap: () {
                 close();
                 onRemove();
@@ -133,17 +135,18 @@ class _WatchLaterTile extends ConsumerWidget {
     final saved = wl != null && ids.contains(wl.playlist.id);
     return _MenuTile(
       icon: Symbols.schedule,
-      label: saved ? 'Remove from Watch later' : 'Save to Watch later',
+      label: saved ? 'Odebrat z Přehrát později' : 'Uložit do Přehrát později',
       onTap: () async {
         close();
         await ref.read(libraryProvider).toggleWatchLater(video);
-        if (context.mounted) showSnack(context, saved ? 'Removed from Watch later' : 'Saved to Watch later');
+        if (context.mounted) showSnack(context, saved ? 'Odebráno z Přehrát později' : 'Uloženo do Přehrát později');
       },
     );
   }
 }
 
-/// YouTube's "Save video to…" sheet: Watch later and every local playlist with checkboxes, plus "New playlist".
+/// Nabídka YouTube „Uložit video do…“: Přehrát později a všechny místní playlisty
+/// se zaškrtávacími políčky a možností vytvořit nový playlist.
 Future<void> showSaveToPlaylist(BuildContext context, WidgetRef ref, VideoItem video) async {
   await ref.read(libraryProvider).watchLaterId();
   if (!context.mounted) return;
@@ -162,7 +165,7 @@ Future<void> showSaveToPlaylist(BuildContext context, WidgetRef ref, VideoItem v
             children: [
               const Padding(
                 padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
-                child: Text('Save video to...', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+                child: Text('Uložit video do…', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
               ),
               Flexible(
                 child: ListView(
@@ -183,7 +186,7 @@ Future<void> showSaveToPlaylist(BuildContext context, WidgetRef ref, VideoItem v
                           if (context.mounted) {
                             showSnack(
                               context,
-                              v == true ? 'Saved to ${p.playlist.name}' : 'Removed from ${p.playlist.name}',
+                              v == true ? 'Uloženo do ${p.playlist.name}' : 'Odebráno z ${p.playlist.name}',
                             );
                           }
                         },
@@ -194,14 +197,14 @@ Future<void> showSaveToPlaylist(BuildContext context, WidgetRef ref, VideoItem v
               const Divider(),
               ListTile(
                 leading: const Icon(Symbols.add),
-                title: const Text('New playlist'),
+                title: const Text('Nový playlist'),
                 onTap: () async {
-                  final name = await promptText(sheet, title: 'New playlist', hint: 'Choose a title');
+                  final name = await promptText(sheet, title: 'Nový playlist', hint: 'Zadejte název');
                   if (name == null || name.trim().isEmpty) return;
                   final lib = ref.read(libraryProvider);
                   final id = await lib.createPlaylist(name.trim());
                   await lib.addToPlaylist(id, video);
-                  if (context.mounted) showSnack(context, 'Saved to ${name.trim()}');
+                  if (context.mounted) showSnack(context, 'Uloženo do ${name.trim()}');
                 },
               ),
             ],
@@ -230,8 +233,8 @@ Future<String?> promptText(BuildContext context, {required String title, String?
         onSubmitted: (v) => Navigator.of(d).pop(v),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(d).pop(), child: const Text('Cancel')),
-        TextButton(onPressed: () => Navigator.of(d).pop(controller.text), child: const Text('Save')),
+        TextButton(onPressed: () => Navigator.of(d).pop(), child: const Text('Zrušit')),
+        TextButton(onPressed: () => Navigator.of(d).pop(controller.text), child: const Text('Uložit')),
       ],
     ),
   );
