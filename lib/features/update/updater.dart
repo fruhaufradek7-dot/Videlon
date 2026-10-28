@@ -1,3 +1,4 @@
+
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -6,11 +7,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// Where releases are published (see .github/workflows/release.yml and docs/updates.md).
+/// Místo, kde jsou zveřejňována vydání (viz .github/workflows/release.yml a docs/updates.md).
 const releasesRepo = 'SanuSanal/YouPipe';
 const releasesPageUrl = 'https://github.com/$releasesRepo/releases/latest';
 
-/// The installed app, as reported by the platform.
+/// Informace o nainstalované aplikaci získané od platformy.
 class AppInfo {
   const AppInfo({required this.versionName, required this.versionCode, required this.abis, this.device});
 
@@ -24,10 +25,10 @@ class AppInfo {
   final String versionName;
   final int versionCode;
 
-  /// "Manufacturer Model, Android x (SDK n)", for bug reports.
+  /// „Výrobce Model, Android x (SDK n)“, pro hlášení chyb.
   final String? device;
 
-  /// Supported ABIs, most preferred first (Build.SUPPORTED_ABIS).
+  /// Podporované ABI seřazené od nejpreferovanějšího (Build.SUPPORTED_ABIS).
   final List<String> abis;
 }
 
@@ -45,7 +46,8 @@ class ReleaseAsset {
   final String url;
   final int size;
 
-  /// Lowercase hex SHA-256 that GitHub computed for the upload, or null when it doesn't report one.
+  /// SHA-256 v podobě malých hexadecimálních znaků, vypočítaný GitHubem při nahrání,
+  /// nebo null, pokud GitHub tento údaj neposkytuje.
   final String? sha256;
 }
 
@@ -61,16 +63,17 @@ class ReleaseInfo {
 
   final String tag;
 
-  /// Markdown body of the release (written by the release workflow).
+  /// Text poznámek k vydání ve formátu Markdown (vytváří ho proces vydávání nové verze).
   final String notes;
   final String pageUrl;
   final List<ReleaseAsset> assets;
 
-  /// The version without the leading "v".
+  /// Verze bez úvodního znaku „v“.
   String get version => tag.startsWith('v') ? tag.substring(1) : tag;
 }
 
-/// A release that's newer than the installed app, with the APK chosen for this phone.
+/// Dostupná aktualizace novější než nainstalovaná verze,
+/// s APK vybraným pro tento telefon.
 class AvailableUpdate {
   const AvailableUpdate({required this.release, required this.apk});
 
@@ -80,14 +83,15 @@ class AvailableUpdate {
   String get version => release.version;
 }
 
-/// Parses "1.2.3" or "v1.2.3" (anything after a "+" or "-" is ignored). Null if it isn't a version.
+/// Zpracuje verzi „1.2.3“ nebo „v1.2.3“.
+/// Vše za znakem „+“ nebo „-“ se ignoruje. Pokud nejde o verzi, vrátí null.
 List<int>? parseVersion(String s) {
   final m = RegExp(r'^v?(\d+)\.(\d+)\.(\d+)').firstMatch(s.trim());
   if (m == null) return null;
   return [for (var i = 1; i <= 3; i++) int.parse(m.group(i)!)];
 }
 
-/// True when [candidate] is a higher version than [installed].
+/// Vrátí true, pokud je [candidate] novější verzí než [installed].
 bool isNewerVersion(String candidate, String installed) {
   final a = parseVersion(candidate);
   final b = parseVersion(installed);
@@ -99,7 +103,8 @@ bool isNewerVersion(String candidate, String installed) {
   return false;
 }
 
-/// The APK for the first of the phone's [abis] that the release has (asset names end in `-<abi>.apk`).
+/// Vybere APK pro první ABI telefonu, pro které vydání obsahuje soubor.
+/// Názvy souborů končí na „-<abi>.apk“.
 ReleaseAsset? pickApk(List<ReleaseAsset> assets, List<String> abis) {
   for (final abi in abis) {
     for (final a in assets) {
@@ -109,18 +114,20 @@ ReleaseAsset? pickApk(List<ReleaseAsset> assets, List<String> abis) {
   return null;
 }
 
-/// The hex from a GitHub asset digest (`sha256:<hex>`), or null for a missing or other kind of digest.
+/// Zpracuje kontrolní součet SHA-256 z údaje GitHubu („sha256:<hex>“).
+/// Pokud chybí nebo má jiný formát, vrátí null.
 String? parseSha256Digest(String? digest) {
   final m = RegExp(r'^sha256:([0-9a-fA-F]{64})$').firstMatch(digest ?? '');
   return m?.group(1)!.toLowerCase();
 }
 
-/// Turns the release notes into short plain text for the update sheet. Also copes with the older
-/// GitHub-generated notes ("What's Changed", "by @user in" plus a PR link).
+/// Převede poznámky k vydání na krátký prostý text pro okno aktualizace.
+/// Zvládá také starší poznámky generované GitHubem („What's Changed“,
+/// „by @user in“ a odkaz na pull request).
 String cleanReleaseNotes(String markdown) {
   final lines = <String>[];
   for (var line in markdown.replaceAll('\r\n', '\n').split('\n')) {
-    // Skip the "Which APK?" hint (the app picks the APK itself) and the changelog link.
+    // Přeskočí informaci o výběru APK (aplikace vybere soubor sama) a odkaz na seznam změn.
     if (line.startsWith('**Which APK?**') || line.startsWith('**Full Changelog**')) continue;
     line = line
         .replaceFirst(RegExp(r'^#+\s*'), '')
@@ -128,7 +135,7 @@ String cleanReleaseNotes(String markdown) {
         .replaceFirst(RegExp(r' by @\S+ in https://\S+$'), '')
         .replaceAll('**', '')
         .trimRight();
-    // The sheet has its own "What's new" heading.
+    // Okno aktualizace má vlastní nadpis „Co je nového“.
     if (line == "What's new" || line == "What's Changed") continue;
     if (line.isEmpty && (lines.isEmpty || lines.last.isEmpty)) continue;
     lines.add(line);
@@ -150,7 +157,8 @@ class UpdateException implements Exception {
   String toString() => 'UpdateException($code): $message';
 }
 
-/// Checks GitHub Releases for a newer version, downloads the APK for this phone and installs it.
+/// Kontroluje dostupnost novější verze na GitHub Releases,
+/// stáhne APK pro tento telefon a spustí instalaci.
 class Updater {
   Updater({Dio? dio})
     : _dio =
@@ -165,7 +173,8 @@ class Updater {
   Future<AppInfo> appInfo() async =>
       _appInfo ??= AppInfo.fromMap(await _channel.invokeMapMethod<Object?, Object?>('appInfo') ?? const {});
 
-  /// The latest release if it's newer than the installed app and has an APK for this phone.
+  /// Vrátí nejnovější vydání, pokud je novější než nainstalovaná verze
+  /// a obsahuje APK kompatibilní s tímto telefonem.
   Future<AvailableUpdate?> check() async {
     final info = await appInfo();
     final Response<Map<String, dynamic>> res;
@@ -186,7 +195,8 @@ class Updater {
 
   Future<Directory> _dir() async => Directory('${(await getTemporaryDirectory()).path}/updates');
 
-  /// Downloads the update's APK and checks it against the SHA-256 digest GitHub reports. Returns the file path.
+  /// Stáhne aktualizační APK a ověří ho pomocí kontrolního součtu SHA-256 od GitHubu.
+  /// Vrátí cestu k souboru.
   Future<String> download(
     AvailableUpdate update, {
     void Function(int received, int total)? onProgress,
@@ -213,7 +223,8 @@ class Updater {
     }
   }
 
-  /// Hands the APK to Android's installer, which asks the user to confirm. On success the app is replaced.
+  /// Předá APK instalačnímu programu Androidu, který požádá uživatele o potvrzení.
+  /// Po úspěšné instalaci se aplikace nahradí novou verzí.
   Future<void> install(String path) async {
     try {
       await _channel.invokeMethod<void>('install', {'path': path});
@@ -224,7 +235,7 @@ class Updater {
 
   Future<void> openUrl(String url) => _channel.invokeMethod<void>('openUrl', {'url': url});
 
-  /// Deletes downloaded APKs; once the app has updated (or the user moved on) they're dead weight.
+  /// Odstraní stažená APK, která už nejsou potřeba po aktualizaci nebo po opuštění procesu aktualizace.
   Future<void> cleanup() async {
     final dir = await _dir();
     if (await dir.exists()) await dir.delete(recursive: true);
@@ -236,7 +247,7 @@ class Updater {
     try {
       await File(path).delete();
     } on FileSystemException {
-      // Already gone.
+      // Soubor už neexistuje.
     }
   }
 }
