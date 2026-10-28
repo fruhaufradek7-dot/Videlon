@@ -1,3 +1,4 @@
+
 import 'dart:async';
 
 import 'package:dio/dio.dart' show CancelToken;
@@ -11,7 +12,7 @@ import '../../ui/widgets/common.dart';
 import 'update_sheet.dart';
 import 'updater.dart';
 
-/// In-app updates from GitHub Releases (docs/updates.md).
+/// Aktualizace v aplikaci z GitHub Releases (docs/updates.md).
 final updaterProvider = Provider<Updater>((ref) => Updater());
 
 final appInfoProvider = FutureProvider<AppInfo>((ref) => ref.watch(updaterProvider).appInfo());
@@ -55,7 +56,7 @@ class UpdateFailed extends UpdateState {
 
   final UpdateException error;
 
-  /// The update being fetched or installed, so the sheet can offer a retry.
+  /// Aktualizace, která se stahuje nebo instaluje, aby bylo možné nabídnout opakování.
   final AvailableUpdate? update;
 }
 
@@ -72,8 +73,9 @@ class UpdateController extends Notifier<UpdateState> {
 
   bool get busy => state is UpdateChecking || state is UpdateDownloading || state is UpdateInstalling;
 
-  /// The launch check: silent on errors, and skipped in debug builds (they report pubspec's version and are
-  /// signed with a different key), when turned off, or when the user skipped this version.
+  /// Kontrola při spuštění: chyby se ignorují. Kontrola se přeskočí v ladicím sestavení
+  /// (to používá verzi z pubspec a jiný podpisový klíč), při vypnuté kontrole
+  /// nebo pokud uživatel tuto verzi přeskočil.
   Future<AvailableUpdate?> checkOnLaunch() async {
     await _updater.cleanup().catchError((_) {});
     if (kDebugMode || !(ref.read(prefsProvider).getBool('autoUpdateCheck') ?? true) || busy) return null;
@@ -87,7 +89,8 @@ class UpdateController extends Notifier<UpdateState> {
     }
   }
 
-  /// A check the user asked for. Returns the update, or null when up to date; throws [UpdateException].
+  /// Kontrola vyžádaná uživatelem. Vrátí dostupnou aktualizaci,
+  /// nebo null, pokud je aplikace aktuální; při chybě vyvolá [UpdateException].
   Future<AvailableUpdate?> checkNow() async {
     if (busy) {
       return switch (state) {
@@ -114,7 +117,7 @@ class UpdateController extends Notifier<UpdateState> {
     state = const UpdateIdle();
   }
 
-  /// Downloads, verifies and installs [update]. Errors end up in [UpdateFailed].
+  /// Stáhne aktualizaci, ověří ji a nainstaluje. Případné chyby se uloží do [UpdateFailed].
   Future<void> downloadAndInstall(AvailableUpdate update) async {
     if (state is UpdateDownloading || state is UpdateInstalling) return;
     final cancel = _cancel = CancelToken();
@@ -140,7 +143,8 @@ class UpdateController extends Notifier<UpdateState> {
   void cancelDownload() => _cancel?.cancel();
 }
 
-/// Looks for a new release a few seconds after launch and offers it in the update sheet.
+/// Několik sekund po spuštění zkontroluje, zda není dostupná nová verze,
+/// a případně zobrazí nabídku aktualizace.
 void checkForUpdateOnLaunch(BuildContext context, WidgetRef ref) {
   Future.delayed(const Duration(seconds: 3), () async {
     final update = await ref.read(updateProvider.notifier).checkOnLaunch();
@@ -148,7 +152,7 @@ void checkForUpdateOnLaunch(BuildContext context, WidgetRef ref) {
   });
 }
 
-/// The Updates section of Settings.
+/// Sekce aktualizací v nastavení.
 Widget updateSettings(BuildContext context, WidgetRef ref) {
   final prefs = ref.watch(prefsProvider);
   final info = ref.watch(appInfoProvider).value;
@@ -161,7 +165,7 @@ Widget updateSettings(BuildContext context, WidgetRef ref) {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
           child: Text(
-            'Updates',
+            'Aktualizace',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
@@ -170,8 +174,8 @@ Widget updateSettings(BuildContext context, WidgetRef ref) {
           ),
         ),
         SwitchListTile(
-          title: const Text('Check for updates automatically'),
-          subtitle: const Text('Looks for a new release on GitHub when the app opens'),
+          title: const Text('Automaticky kontrolovat aktualizace'),
+          subtitle: const Text('Při spuštění aplikace hledá novou verzi na GitHubu'),
           value: prefs.getBool('autoUpdateCheck') ?? true,
           onChanged: (v) async {
             await prefs.setBool('autoUpdateCheck', v);
@@ -179,8 +183,8 @@ Widget updateSettings(BuildContext context, WidgetRef ref) {
           },
         ),
         ListTile(
-          title: const Text('Check for updates'),
-          subtitle: Text('Version ${info?.versionName ?? '…'}'),
+          title: const Text('Zkontrolovat aktualizace'),
+          subtitle: Text('Verze ${info?.versionName ?? '…'}'),
           trailing: busy
               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
               : null,
@@ -191,13 +195,13 @@ Widget updateSettings(BuildContext context, WidgetRef ref) {
                     final update = await ref.read(updateProvider.notifier).checkNow();
                     if (!context.mounted) return;
                     if (update == null) {
-                      showSnack(context, "You're up to date");
+                      showSnack(context, 'Používáte nejnovější verzi');
                     } else {
                       unawaited(showUpdateSheet(context, update));
                     }
                   } on UpdateException catch (e) {
                     if (context.mounted) {
-                      showSnack(context, e.code == 'NETWORK' ? "Couldn't check for updates" : e.message);
+                      showSnack(context, e.code == 'NETWORK' ? 'Aktualizace se nepodařilo zkontrolovat' : e.message);
                     }
                   }
                 },
