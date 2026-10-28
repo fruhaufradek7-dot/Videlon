@@ -1,3 +1,4 @@
+
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' show lerpDouble;
@@ -17,16 +18,16 @@ import '../layout.dart';
 import '../theme/yt_theme.dart';
 import '../widgets/common.dart';
 
-/// Run once when the shell first shows (the launch update check).
+/// Spustí se jednou při prvním zobrazení hlavního rozhraní (kontrola aktualizací).
 final shellStartHooks = <void Function(BuildContext context, WidgetRef ref)>[];
 
-/// The open panel under the player (Description, Comments, Queue).
+/// Otevřený panel pod přehrávačem (Popis, Komentáře, Fronta).
 final watchSheetProvider = NotifierProvider<WatchSheetController, WatchSheet>(WatchSheetController.new);
 
 class WatchSheetController extends Notifier<WatchSheet> {
   @override
   WatchSheet build() {
-    // A new video closes the panel.
+    // Po spuštění nového videa se panel zavře.
     ref.watch(playbackProvider.select((p) => p?.video.id));
     return WatchSheet.none;
   }
@@ -35,7 +36,7 @@ class WatchSheetController extends Notifier<WatchSheet> {
   void close() => state = WatchSheet.none;
 }
 
-/// Bottom navigation plus the watch panel, which morphs between the mini player and the full watch page.
+/// Spodní navigace a panel přehrávání, který se mění mezi mini přehrávačem a stránkou videa.
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key, required this.navigationShell});
 
@@ -48,16 +49,16 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMixin {
   late final _panel = AnimationController(vsync: this, duration: const Duration(milliseconds: 280));
 
-  /// The side rail, so the remote's Left can reach it from inside a page (see [_leftToRail]).
+  /// Postranní navigace, na kterou se lze dostat šipkou doleva z obsahu stránky (viz [_leftToRail]).
   final _rail = GlobalKey<_SideNavState>();
 
-  /// How far (px) the mini player has been swiped down to close it.
+  /// O kolik pixelů byl mini přehrávač posunut dolů při zavírání.
   late final _dismiss = AnimationController.unbounded(vsync: this);
 
-  /// The mini player's corner: 0 = bottom left, 1 = bottom right (dragged sideways, like YouTube's).
+  /// Strana mini přehrávače: 0 = vlevo dole, 1 = vpravo dole.
   late final _side = AnimationController(vsync: this, value: 1, duration: const Duration(milliseconds: 250));
 
-  // Set by each layout: how far the video travels between mini and full, and between the corners.
+  // Hodnoty jednotlivých rozložení: vzdálenost mezi mini přehrávačem a velkým přehrávačem.
   double _travel = 1;
   double _sideTravel = 1;
   double _miniHeight = 1;
@@ -78,8 +79,7 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
     super.dispose();
   }
 
-  /// Whether the current drag started on the expanded watch page, and how far it has pulled up past it (a swipe up
-  /// there goes fullscreen, like YouTube).
+  /// Zda gesto začalo na rozbalené stránce videa a jak daleko bylo vytaženo nahoru.
   bool _dragFromFull = false;
   double _pullUp = 0;
 
@@ -88,7 +88,7 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
     _pullUp = 0;
   }
 
-  /// Vertical drag on the video: up expands, down minimises; down on the mini player starts closing it.
+  /// Svislé gesto na videu: nahoru rozbalí přehrávač, dolů ho minimalizuje.
   void _drag(double dy) {
     if (_dragFromFull && _panel.value == 1 && dy < 0) {
       _pullUp -= dy;
@@ -135,7 +135,7 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
     final form = formFactorOf(context);
     if (on) {
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-      // A TV is always landscape; phones and tablets turn for fullscreen.
+      // Televizor používá vždy orientaci na šířku; telefony a tablety se při celoobrazovkovém režimu otočí.
       if (form != FormFactor.tv) await sensorLandscape();
     } else {
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -146,22 +146,22 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     ref.listen(playerPanelProvider, (_, expanded) {
-      // A TV has no mini player: closing the watch page (Back, or leaving it for a page or tab) stops the video.
+      // Televizor nemá mini přehrávač: při zavření stránky videa se přehrávání zastaví.
       if (!expanded && DeviceInfo.current.tv && ref.read(playbackProvider) != null) {
         unawaited(ref.read(playbackProvider.notifier).stop());
       }
       _panel.animateTo(expanded ? 1 : 0, curve: Curves.easeOutCubic);
-      // The remote's focus goes back to the rail when the watch page closes (its player had focus).
+      // Po zavření stránky videa se na televizoru vrátí fokus do navigace.
       if (!expanded) WidgetsBinding.instance.addPostFrameCallback((_) => _rail.currentState?.claimFocus());
     });
     ref.listen(fullscreenProvider, (_, on) => _setFullscreen(on));
-    // Arm picture-in-picture while a video plays (leaving the app then shrinks it into a window).
+    // Při přehrávání videa se aktivuje obraz v obraze.
     ref.listen(playerControllerProvider, (_, c) => _armPip(c));
 
     final playing = ref.watch(playbackProvider);
     final fullscreen = ref.watch(fullscreenProvider);
     final panelExpanded = ref.watch(playerPanelProvider);
-    // The watch page covers the tabs and the rail: they leave focus traversal (the remote would move behind it).
+    // Otevřená stránka videa překrývá navigaci.
     final coveredByPanel = playing != null && panelExpanded;
     final tab = widget.navigationShell.currentIndex;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -169,11 +169,11 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
     });
 
     final media = MediaQuery.of(context);
-    // Wide screens (landscape tablets, TVs) get a side rail and the two-column watch page (docs/ui.md).
+    // Široké obrazovky (tablety na šířku a televizory) používají postranní navigaci.
     final wide = isWide(media.size);
     final railW = wide ? YtSizes.navRailWidth : 0.0;
     final navHeight = wide ? 0.0 : YtSizes.navBarHeight + media.padding.bottom;
-    // YouTube hides the mini player on the Shorts tab; a TV has none (the video stops as the watch page closes).
+    // Na kartě Krátká videa se mini přehrávač skryje; televizor mini přehrávač nemá.
     final hideMini = (tab == 1 || DeviceInfo.current.tv) && !panelExpanded;
 
     return BackButtonListener(
@@ -192,16 +192,14 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
         return true;
       },
       child: PopScope(
-        // Claim Back whenever the shell has something to undo (fullscreen, the expanded player, another tab).
-        // Android 16's predictive back asks up front: if this said "can pop", Back would close the app instead of
-        // reaching the BackButtonListener above.
+        // Zachytí tlačítko Zpět, pokud je potřeba zavřít celoobrazovkový režim nebo přehrávač.
         canPop: widget.navigationShell.currentIndex == 0 && !fullscreen && !(playing != null && panelExpanded),
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop) widget.navigationShell.goBranch(0);
         },
         child: Scaffold(
           resizeToAvoidBottomInset: false,
-          // An invisible stand-in for the nav bar (drawn in the Stack below), so toasts float above it like YouTube's.
+          // Prázdný prostor pod navigací zajišťuje správnou pozici oznámení.
           extendBody: true,
           bottomNavigationBar: fullscreen || wide ? null : IgnorePointer(child: SizedBox(height: navHeight)),
           body: fullscreen && playing != null
@@ -212,21 +210,21 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
               : LayoutBuilder(
                   builder: (context, constraints) {
                     final size = constraints.biggest;
-                    // The original insets: extendBody would add the stand-in nav bar to the bottom padding.
+                    // Původní odsazení spodní části při použití extendBody.
                     return MediaQuery(
                       data: media,
                       child: AnimatedBuilder(
                         animation: Listenable.merge([_panel, _dismiss, _side]),
                         builder: (context, _) {
                           final t = playing == null ? 0.0 : _panel.value;
-                          // The mini player floats over the content (it reserves no space), like YouTube's.
+                          // Mini přehrávač plave nad obsahem a nezabírá místo v rozložení.
                           const m = YtSizes.miniPlayerMargin;
                           final miniW = math
                               .min(size.width * YtSizes.miniPlayerWidthFraction, YtSizes.miniPlayerMaxWidth)
                               .roundToDouble();
                           final miniH = miniW * 9 / 16;
                           final miniTop = size.height - navHeight - miniH - m;
-                          // On wide screens the video takes the left column and the related list the right one.
+                          // Na širokých obrazovkách je video vlevo a související obsah vpravo.
                           final videoW = wide ? (size.width * YtSizes.watchColumnFraction).roundToDouble() : size.width;
                           final full = Rect.fromLTWH(0, media.padding.top, videoW, videoW * 9 / 16);
                           _miniHeight = miniH;
@@ -243,17 +241,14 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
                               Positioned.fill(
                                 left: railW,
                                 bottom: navHeight,
-                                // Pages end with room for the floating mini player (lists read this as their bottom
-                                // padding; sliver pages add a SliverBottomInset), so their last item can scroll clear.
+                                // Stránky mají dole prostor pro plovoucí mini přehrávač.
                                 child: MediaQuery(
                                   data: media.copyWith(
                                     padding: media.padding.copyWith(
                                       bottom: playing != null && !hideMini ? miniH + 2 * m : 0,
                                     ),
                                   ),
-                                  // Always wrapped (it acts only while the rail shows), so rotating a tablet doesn't
-                                  // rebuild the tabs.
-                                  // Under the open watch page the pages can't take the remote's focus.
+                                  // Obal zajišťuje stabilní chování při otáčení tabletu.
                                   child: ExcludeFocus(
                                     excluding: coveredByPanel,
                                     child: Focus(
@@ -267,7 +262,7 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
                               ),
                               if (playing != null && !hideMini)
                                 Positioned.fill(
-                                  // Over the expanded player the status bar is black with light icons, like YouTube.
+                                  // Při otevření přehrávače je horní stavový řádek černý.
                                   child: AnnotatedRegion<SystemUiOverlayStyle>(
                                     value: _panelOverlay(context, expanded: t > 0.5),
                                     child: _WatchPanel(
@@ -320,8 +315,7 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
     );
   }
 
-  /// Each tab's pages sit in their own focus scope, which arrow keys don't leave. So Left that can't move any
-  /// further inside the page goes to the side rail, like YouTube for TV.
+  /// Při stisknutí šipky doleva na začátku stránky se fokus přesune na postranní navigaci.
   KeyEventResult _leftToRail(FocusNode node, KeyEvent e) {
     final rail = _rail.currentState;
     if (rail == null || e is KeyUpEvent || e.logicalKey != LogicalKeyboardKey.arrowLeft) return KeyEventResult.ignored;
@@ -351,7 +345,7 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
       arm(false, const Size(16, 9));
       return;
     }
-    // The listener fires many times a second; only tell Android when playing or the shape changes.
+    // Posluchač se spouští často; Android informujeme jen při změně stavu přehrávání nebo poměru stran.
     void update() {
       final v = c.value;
       arm(v.isPlaying, v.size.isEmpty ? const Size(16, 9) : v.size);
@@ -364,7 +358,7 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
 
 void _noop() {}
 
-/// In fullscreen a swipe down on the video leaves it, like YouTube.
+/// Přejetím dolů v celoobrazovkovém režimu se přehrávač minimalizuje.
 class _FullscreenSwipe extends ConsumerStatefulWidget {
   const _FullscreenSwipe({required this.child});
 
@@ -388,8 +382,7 @@ class _FullscreenSwipeState extends ConsumerState<_FullscreenSwipe> {
   );
 }
 
-/// The theme's system bars, with light status bar icons over the expanded player. Flutter's `SystemUiOverlayStyle.light`
-/// and `.dark` also paint the navigation bar black, which showed a black bar under the light watch page.
+/// Styl systémových lišt při zobrazení rozbaleného přehrávače.
 SystemUiOverlayStyle _panelOverlay(BuildContext context, {required bool expanded}) {
   final themed = Theme.of(context).appBarTheme.systemOverlayStyle!;
   return expanded
@@ -412,20 +405,20 @@ class _WatchPanel extends ConsumerWidget {
     required this.onSideDragEnd,
   });
 
-  /// 0 = mini player, 1 = watch page.
+  /// 0 = mini přehrávač, 1 = stránka videa.
   final double t;
 
-  /// Where the video is drawn (morphs from the mini card to the top of the watch page).
+  /// Pozice videa, které se mění z mini přehrávače na velký přehrávač.
   final Rect video;
 
-  /// The width of the expanded video: the whole screen, or the left column on wide screens.
+  /// Šířka rozbaleného videa.
   final double videoW;
 
-  /// Two columns: video and details on the left, related videos (or the open panel) on the right.
+  /// Dva sloupce: video a podrobnosti vlevo, související videa vpravo.
   final bool wide;
   final double fullHeight;
 
-  /// The mini player's opacity while it's swiped down to close.
+  /// Průhlednost mini přehrávače při zavírání.
   final double fade;
   final VoidCallback onDragStart;
   final ValueChanged<double> onDrag;
@@ -454,7 +447,7 @@ class _WatchPanel extends ConsumerWidget {
       },
     );
 
-    // Without a background at t = 0, touches outside the mini card reach the page underneath.
+    // Bez pozadí při t = 0 by se klepnutí mimo mini přehrávač dostalo na stránku pod ním.
     return Stack(
       children: [
         if (t > 0) ...[
@@ -489,7 +482,7 @@ class _WatchPanel extends ConsumerWidget {
               child: Stack(
                 children: [
                   WatchDetails(onSheet: ref.read(watchSheetProvider.notifier).show, showRelated: !wide),
-                  // Narrow: the panel slides over the details. Wide: it takes the right column instead.
+                  // Na úzké obrazovce panel překrývá podrobnosti; na široké zabírá pravý sloupec.
                   if (!wide && sheet != WatchSheet.none) Positioned.fill(child: sheetPanel(rounded: true)),
                 ],
               ),
@@ -507,7 +500,7 @@ class _WatchPanel extends ConsumerWidget {
               child: sheet == WatchSheet.none ? const RelatedList() : sheetPanel(rounded: false),
             ),
           ),
-        // Keyed: the layers above come and go, and the video's drag detector must not be rebuilt mid-drag.
+        // Klíč zabraňuje opětovnému vytvoření detektoru gest při změně velikosti videa.
         Positioned.fromRect(
           key: const ValueKey('video'),
           rect: video,
@@ -518,7 +511,6 @@ class _WatchPanel extends ConsumerWidget {
               elevation: t < 0.05 ? 6 : 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius)),
               clipBehavior: Clip.antiAlias,
-              // One detector for every size, so a drag survives the switch between mini and full.
               child: GestureDetector(
                 onVerticalDragStart: (_) => onDragStart(),
                 onVerticalDragUpdate: (d) => onDrag(d.primaryDelta!),
@@ -539,8 +531,7 @@ class _WatchPanel extends ConsumerWidget {
   }
 }
 
-/// YouTube's floating mini player: the video in a rounded card. A tap shows the controls (expand, close,
-/// previous / play-pause / next); a tap on the shown controls opens the watch page.
+/// Plovoucí mini přehrávač: klepnutím zobrazíš ovládání.
 class _MiniPlayer extends ConsumerStatefulWidget {
   const _MiniPlayer({required this.onExpand});
 
@@ -586,7 +577,7 @@ class _MiniPlayerState extends ConsumerState<_MiniPlayer> {
     );
 
     Widget playPause(bool playing, VoidCallback toggle) =>
-        button(playing ? Symbols.pause : Symbols.play_arrow, toggle, size: 36, tooltip: playing ? 'Pause' : 'Play');
+        button(playing ? Symbols.pause : Symbols.play_arrow, toggle, size: 36, tooltip: playing ? 'Pozastavit' : 'Přehrát');
 
     final Widget center;
     if (remote != null) {
@@ -610,7 +601,7 @@ class _MiniPlayerState extends ConsumerState<_MiniPlayer> {
         fit: StackFit.expand,
         children: [
           const VideoSurface(),
-          // Focusable for the TV remote, where Select opens the watch page straight away.
+          // Na televizoru otevře tlačítko výběru rovnou stránku videa.
           InkWell(
             onTap: () => _controls || FocusManager.instance.highlightMode == FocusHighlightMode.traditional
                 ? widget.onExpand()
@@ -634,22 +625,22 @@ class _MiniPlayerState extends ConsumerState<_MiniPlayer> {
                         Positioned(
                           left: 0,
                           top: 0,
-                          child: button(Symbols.open_in_full, widget.onExpand, size: 20, tooltip: 'Expand'),
+                          child: button(Symbols.open_in_full, widget.onExpand, size: 20, tooltip: 'Rozbalit'),
                         ),
                         Positioned(
                           right: 0,
                           top: 0,
-                          child: button(Symbols.close, () => playback.stop(), size: 22, tooltip: 'Close'),
+                          child: button(Symbols.close, () => playback.stop(), size: 22, tooltip: 'Zavřít'),
                         ),
                         Center(
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              button(Symbols.skip_previous, () => playback.previous(), tooltip: 'Previous'),
+                              button(Symbols.skip_previous, () => playback.previous(), tooltip: 'Předchozí'),
                               const SizedBox(width: 4),
                               center,
                               const SizedBox(width: 4),
-                              button(Symbols.skip_next, () => playback.next(), tooltip: 'Next'),
+                              button(Symbols.skip_next, () => playback.next(), tooltip: 'Další'),
                             ],
                           ),
                         ),
@@ -689,9 +680,9 @@ class _MiniProgress extends ConsumerWidget {
   }
 }
 
-const _navLabels = ['Home', 'Shorts', 'Subscriptions', 'You'];
+const _navLabels = ['Domů', 'Krátká videa', 'Odběry', 'Vy'];
 
-/// One destination of the bottom bar or the side rail: the icon (filled when selected) over its label.
+/// Jedna položka spodní nebo postranní navigace.
 class _NavItem extends StatelessWidget {
   const _NavItem({required this.i, required this.selected, required this.onTap, this.focusNode, this.rail = false});
 
@@ -700,7 +691,7 @@ class _NavItem extends StatelessWidget {
   final VoidCallback onTap;
   final FocusNode? focusNode;
 
-  /// In the side rail: the item fills the rail and highlights as a rounded square.
+  /// Zda se položka zobrazuje v postranní navigaci.
   final bool rail;
 
   @override
@@ -770,8 +761,7 @@ class _BottomNav extends StatelessWidget {
   }
 }
 
-/// The navigation rail on wide screens (landscape tablets, TVs), like YouTube on tablets. On a TV it makes sure
-/// something has focus (the selected item) whenever nothing else does, so the remote's first press always lands.
+/// Postranní navigace pro široké obrazovky, například tablety a televizory.
 class _SideNav extends StatefulWidget {
   const _SideNav({super.key, required this.index, required this.onTap});
 
@@ -805,16 +795,15 @@ class _SideNavState extends State<_SideNav> {
     super.dispose();
   }
 
-  /// Focuses the selected item (the remote's Left from a page, [_AppShellState._leftToRail]).
+  /// Přesune fokus na právě vybranou položku.
   void focusSelected() => _nodes[widget.index].requestFocus();
 
-  /// Focuses the selected item unless a widget already has focus (TV only).
+  /// Na televizoru se fokus vrátí na vybranou položku, pokud není aktivní jiný prvek.
   void claimFocus() {
     final primary = FocusManager.instance.primaryFocus;
     if (DeviceInfo.current.tv && (primary == null || primary is FocusScopeNode)) focusSelected();
   }
 
-  /// After this frame: focus the selected item if no widget (only a scope, or nothing) has focus.
   void _claimFocus() {
     if (!DeviceInfo.current.tv) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
