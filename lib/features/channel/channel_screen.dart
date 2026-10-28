@@ -18,7 +18,7 @@ const _supportedTabs = {'Home', 'Videos', 'Shorts', 'Live', 'Releases', 'Playlis
 String _translatedTab(String title) => switch (title) {
       'Home' => 'Domů',
       'Videos' => 'Videa',
-      'Shorts' => 'Shorts',
+      'Shorts' => 'Krátká videa',
       'Live' => 'Živě',
       'Releases' => 'Novinky',
       'Playlists' => 'Playlisty',
@@ -55,6 +55,7 @@ class ChannelScreen extends ConsumerWidget {
                   leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Symbols.arrow_back)),
                   actions: [
                     IconButton(
+                      tooltip: 'Sdílet kanál',
                       onPressed: () => SharePlus.instance.share(
                         ShareParams(text: 'https://www.youtube.com/${p.handle ?? 'channel/${p.id}'}'),
                       ),
@@ -238,7 +239,7 @@ class _TabContentState extends ConsumerState<_TabContent> with AutomaticKeepAliv
               switch (widget.tab.title) {
                 'Home' => 'Tento kanál zatím nemá žádný obsah.',
                 'Videos' => 'Tento kanál zatím nemá žádná videa.',
-                'Shorts' => 'Tento kanál zatím nemá žádné Shorts.',
+                'Shorts' => 'Tento kanál zatím nemá žádná krátká videa.',
                 'Live' => 'Tento kanál zatím nemá žádná živá vysílání.',
                 'Releases' => 'Tento kanál zatím nemá žádné novinky.',
                 'Playlists' => 'Tento kanál zatím nemá žádné playlisty.',
