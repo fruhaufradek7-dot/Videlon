@@ -34,7 +34,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void _submit(String q) {
     final query = q.trim();
     if (query.isEmpty) return;
-    if (ref.read(settingsProvider).saveSearchHistory) ref.read(libraryProvider).addSearch(query);
+    if (ref.read(settingsProvider).saveSearchHistory) {
+      ref.read(libraryProvider).addSearch(query);
+    }
     // Po spuštění vyhledávání se zavře klávesnice.
     FocusManager.instance.primaryFocus?.unfocus();
     context.pushReplacement(resultsPath(context, query));
@@ -44,7 +46,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Widget build(BuildContext context) {
     final input = _text.text;
     final history = ref.watch(searchHistoryProvider).value ?? const <String>[];
-    final suggestions = ref.watch(searchSuggestionsProvider(input)).value ?? const <String>[];
+    final suggestions =
+        ref.watch(searchSuggestionsProvider(input)).value ?? const <String>[];
     final matching = [
       for (final h in history)
         if (input.isEmpty || h.toLowerCase().startsWith(input.toLowerCase())) h,
@@ -54,12 +57,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       for (final s in suggestions)
         if (!matching.contains(s)) (s, false),
     ];
+
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: YtSizes.topBarHeight + 8,
-        leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Symbols.arrow_back)),
+        leading: IconButton(
+          onPressed: () => context.pop(),
+          icon: const Icon(Symbols.arrow_back),
+        ),
         titleSpacing: 0,
-        title: SearchField(controller: _text, onChanged: (_) => setState(() {}), onSubmitted: _submit),
+        title: SearchField(
+          controller: _text,
+          onChanged: (_) => setState(() {}),
+          onSubmitted: _submit,
+        ),
         actions: const [SizedBox(width: 12)],
       ),
       body: MaxContentWidth(
@@ -68,12 +79,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           itemBuilder: (context, i) {
             final (text, isHistory) = rows[i];
             return ListTile(
-              leading: Icon(isHistory ? Symbols.history : Symbols.search, weight: 300),
+              leading: Icon(
+                isHistory ? Symbols.history : Symbols.search,
+                weight: 300,
+              ),
               title: Text(text, style: const TextStyle(fontSize: 15)),
               trailing: IconButton(
                 onPressed: () => setState(() {
                   _text.text = '$text ';
-                  _text.selection = TextSelection.collapsed(offset: _text.text.length);
+                  _text.selection =
+                      TextSelection.collapsed(offset: _text.text.length);
                 }),
                 icon: const Icon(Symbols.north_west, weight: 300),
               ),
@@ -84,14 +99,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         context: context,
                         builder: (d) => AlertDialog(
                           title: Text(text),
-                          content: const Text('Odebrat z historie vyhledávání?'),
+                          content: const Text(
+                            'Odebrat z historie vyhledávání?',
+                          ),
                           actions: [
-                            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Zrušit')),
-                            TextButton(onPressed: () => Navigator.pop(d, true), child: const Text('Odebrat')),
+                            TextButton(
+                              onPressed: () => Navigator.pop(d, false),
+                              child: const Text('Zrušit'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(d, true),
+                              child: const Text('Odebrat'),
+                            ),
                           ],
                         ),
                       );
-                      if (remove == true) await ref.read(libraryProvider).removeSearch(text);
+                      if (remove == true) {
+                        await ref.read(libraryProvider).removeSearch(text);
+                      }
                     }
                   : null,
             );
@@ -124,9 +149,13 @@ class SearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (readOnly) return _pill(context);
+
     return Container(
       height: 40,
-      decoration: BoxDecoration(color: context.yt.chip, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: context.yt.chip,
+        borderRadius: BorderRadius.circular(20),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       alignment: Alignment.centerLeft,
       child: TextField(
@@ -136,7 +165,11 @@ class SearchField extends StatelessWidget {
         onSubmitted: onSubmitted,
         textInputAction: TextInputAction.search,
         style: const TextStyle(fontSize: 16),
-        decoration: const InputDecoration(hintText: 'Hledat na YouPipe', isCollapsed: true, border: InputBorder.none),
+        decoration: const InputDecoration(
+          hintText: 'Hledat na YouPipe',
+          isCollapsed: true,
+          border: InputBorder.none,
+        ),
       ),
     );
   }
@@ -144,6 +177,7 @@ class SearchField extends StatelessWidget {
   /// Pole na stránce výsledků otevře znovu vyhledávání i při ovládání dálkovým ovladačem.
   Widget _pill(BuildContext context) {
     final text = controller?.text ?? '';
+
     return SizedBox(
       height: 40,
       child: FocusHighlight(
@@ -162,7 +196,10 @@ class SearchField extends StatelessWidget {
                   text.isEmpty ? 'Hledat na YouPipe' : text,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 16, color: text.isEmpty ? context.yt.textSecondary : null),
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: text.isEmpty ? context.yt.textSecondary : null,
+                  ),
                 ),
               ),
             ),
@@ -185,28 +222,38 @@ class ResultsScreen extends ConsumerWidget {
     final key = (query: query, params: params);
     final results = ref.watch(searchResultsProvider(key));
     final entries = results.value?.items ?? const <FeedEntry>[];
+
     return Scaffold(
       body: StatusBarScrim(
         child: LoadMoreListener(
-          onLoadMore: () => ref.read(searchResultsProvider(key).notifier).loadMore(),
+          onLoadMore: () =>
+              ref.read(searchResultsProvider(key).notifier).loadMore(),
           child: CustomScrollView(
             slivers: [
               SliverAppBar(
                 floating: true,
                 snap: true,
                 toolbarHeight: YtSizes.topBarHeight + 8,
-                leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Symbols.arrow_back)),
+                leading: IconButton(
+                  onPressed: () => context.pop(),
+                  icon: const Icon(Symbols.arrow_back),
+                ),
                 titleSpacing: 0,
                 title: SearchField(
                   controller: TextEditingController(text: query),
                   readOnly: true,
-                  onTap: () =>
-                      context.pushReplacement('${branchPrefix(context)}/search?q=${Uri.encodeQueryComponent(query)}'),
+                  onTap: () => context.pushReplacement(
+                    '${branchPrefix(context)}/search?q=${Uri.encodeQueryComponent(query)}',
+                  ),
                 ),
                 actions: [
                   IconButton(
                     onPressed: () => _showFilters(context, ref, key),
-                    icon: Icon(Symbols.tune, weight: 300, fill: params == null ? 0 : 1),
+                    icon: Icon(
+                      Symbols.tune,
+                      weight: 300,
+                      fill: params == null ? 0 : 1,
+                    ),
                   ),
                 ],
               ),
@@ -215,7 +262,11 @@ class ResultsScreen extends ConsumerWidget {
               else if (results.hasError && entries.isEmpty)
                 SliverFillRemaining(
                   hasScrollBody: false,
-                  child: ErrorView(error: results.error!, onRetry: () => ref.invalidate(searchResultsProvider(key))),
+                  child: ErrorView(
+                    error: results.error!,
+                    onRetry: () =>
+                        ref.invalidate(searchResultsProvider(key)),
+                  ),
                 )
               else if (entries.isEmpty)
                 const SliverFillRemaining(
@@ -232,7 +283,10 @@ class ResultsScreen extends ConsumerWidget {
                     FeedSliver(entries),
                     SliverToBoxAdapter(
                       child: results.value?.loadingMore ?? false
-                          ? const Padding(padding: EdgeInsets.all(24), child: LoadingView())
+                          ? const Padding(
+                              padding: EdgeInsets.all(24),
+                              child: LoadingView(),
+                            )
                           : const SizedBox(height: 24),
                     ),
                   ],
@@ -248,6 +302,7 @@ class ResultsScreen extends ConsumerWidget {
   void _showFilters(BuildContext context, WidgetRef ref, SearchQuery key) {
     final groups = ref.read(searchResultsProvider(key).notifier).filters;
     if (groups.isEmpty) return;
+
     showModalBottomSheet<void>(
       context: context,
       useRootNavigator: true,
@@ -260,12 +315,21 @@ class ResultsScreen extends ConsumerWidget {
           controller: scroll,
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           children: [
-            const Text('Filtry vyhledávání', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+            const Text(
+              'Filtry vyhledávání',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 8),
             for (final g in groups) ...[
               Padding(
                 padding: const EdgeInsets.only(top: 16, bottom: 8),
-                child: Text(g.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                child: Text(
+                  g.title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
               Wrap(
                 spacing: 8,
@@ -275,12 +339,14 @@ class ResultsScreen extends ConsumerWidget {
                     YtChip(
                       label: o.label,
                       selected: o.selected,
-                      // YouTube supplies the params for toggling an option off as well as on.
+                      // YouTube poskytuje parametry pro zapnutí i vypnutí filtru.
                       onTap: o.params == null
                           ? null
                           : () {
                               Navigator.of(sheet).pop();
-                              context.pushReplacement(resultsPath(context, query, params: o.params));
+                              context.pushReplacement(
+                                resultsPath(context, query, params: o.params),
+                              );
                             },
                     ),
                 ],
