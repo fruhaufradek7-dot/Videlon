@@ -1,8 +1,10 @@
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Like and dislike counts from Return YouTube Dislike (`returnyoutubedislikeapi.com`), since YouTube hides
-/// dislikes (docs/apis.md).
+/// Načítá počty označení „To se mi líbí“ a „Nelíbí se mi“ z projektu
+/// Return YouTube Dislike (`returnyoutubedislikeapi.com`), protože YouTube
+/// počet dislajků nezobrazuje (docs/apis.md).
 class Votes {
   const Votes(this.likes, this.dislikes);
 
