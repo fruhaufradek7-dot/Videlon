@@ -15,7 +15,7 @@ import '../../ui/widgets/common.dart';
 import '../../ui/widgets/video_menu.dart';
 import '../../ui/widgets/video_tiles.dart';
 
-/// Hlavička playlistu pro playlisty YouTube i místní playlisty.
+/// Hlavička playlistu z YouTube nebo místního playlistu.
 class PlaylistHeader extends StatelessWidget {
   const PlaylistHeader({
     super.key,
@@ -87,7 +87,7 @@ class PlaylistHeader extends StatelessWidget {
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: onOwner,
-                  child: Text('od uživatele $owner', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                  child: Text('Autor: $owner', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                 ),
               ],
               if (meta.isNotEmpty) ...[
@@ -119,7 +119,7 @@ class PlaylistHeader extends StatelessWidget {
                         minimumSize: const Size(0, 40),
                       ),
                       icon: const Icon(Symbols.shuffle),
-                      label: const Text('Náhodně', style: TextStyle(fontWeight: FontWeight.w500)),
+                      label: const Text('Náhodné přehrávání', style: TextStyle(fontWeight: FontWeight.w500)),
                     ),
                   ),
                   ...actions,
@@ -242,7 +242,7 @@ class PlaylistScreen extends ConsumerWidget {
   }
 }
 
-/// Později přehrát, oblíbená videa nebo vlastní playlist YouPipe.
+/// Přehrát později, oblíbená videa nebo vlastní playlist YouPipe.
 class LocalPlaylistScreen extends ConsumerWidget {
   const LocalPlaylistScreen({super.key, required this.id});
 
@@ -277,7 +277,7 @@ class LocalPlaylistScreen extends ConsumerWidget {
                   final name = await promptText(context, title: 'Přejmenovat playlist', initial: playlist.name);
                   if (name != null && name.trim().isNotEmpty) await lib.renamePlaylist(id, name.trim());
                 } else if (a == 'delete') {
-                  // Smazání nelze vrátit zpět, proto se nejprve zobrazí potvrzení.
+                  // Před smazáním playlistu se zobrazí potvrzení.
                   final ok = await showDialog<bool>(
                     context: context,
                     builder: (dialog) => AlertDialog(
@@ -323,7 +323,9 @@ class LocalPlaylistScreen extends ConsumerWidget {
                 child: EmptyView(
                   icon: isLiked ? Symbols.thumb_up : Symbols.video_library,
                   title: 'V tomto playlistu zatím nejsou žádná videa',
-                  message: isLiked ? 'Videa, která označíš jako oblíbená, se zobrazí zde.' : 'Ukládej videa pomocí nabídky ⋮.',
+                  message: isLiked
+                      ? 'Videa, která označíš jako oblíbená, se zobrazí zde.'
+                      : 'Videa můžeš přidávat pomocí nabídky ⋮.',
                 ),
               )
             else if (userMade || playlist?.isWatchLater == true)
