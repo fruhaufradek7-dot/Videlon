@@ -1,4 +1,4 @@
-```dart
+
 /// Feature registration: later phases (downloads, sign-in, SponsorBlock, cast, updates) plug their routes, menu
 /// entries, settings sections and startup providers in here, so the core screens don't import them directly.
 library;
@@ -77,4 +77,4 @@ void registerFeatures() {
   // Import / export subscriptions (Google Takeout, NewPipe).
   ChannelsScreen.extraActions.add(subscriptionsMenu);
 }
-```
+
