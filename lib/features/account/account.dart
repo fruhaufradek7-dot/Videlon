@@ -30,7 +30,8 @@ const _cookies = MethodChannel('youpipe/cookies');
 
 /// Přihlášení přes Google (docs/account.md). Přihlášení je volitelné.
 /// Relace se ukládá v šifrovaném úložišti a předává se službě InnerTube.
-final authProvider = AsyncNotifierProvider<AuthController, AuthState>(AuthController.new);
+final authProvider =
+    AsyncNotifierProvider<AuthController, AuthState>(AuthController.new);
 
 class AuthController extends AsyncNotifier<AuthState> {
   static const _storage = FlutterSecureStorage();
@@ -63,14 +64,21 @@ class AuthController extends AsyncNotifier<AuthState> {
         'watchLater' => _yt.editPlaylist('WL', id, add: on),
         _ => Future.value(),
       };
-      call.catchError((Object e) => debugPrint('YouPipe: synchronizace účtu $action selhala: $e'));
+      call.catchError(
+        (Object e) => debugPrint(
+          'YouPipe: synchronizace účtu $action selhala: $e',
+        ),
+      );
     };
   }
 
   /// Načte cookies z WebView po přechodu na youtube.com.
   /// Vrací false, pokud přihlášení ještě není dokončeno.
   Future<bool> completeSignIn() async {
-    final cookie = await _cookies.invokeMethod<String>('get', {'url': 'https://www.youtube.com'});
+    final cookie = await _cookies.invokeMethod<String>(
+      'get',
+      {'url': 'https://www.youtube.com'},
+    );
     if (cookie == null || !isSignedInCookie(cookie)) return false;
     await _storage.write(key: _cookieKey, value: cookie);
     _yt.cookie = cookie;
@@ -93,8 +101,8 @@ class AuthController extends AsyncNotifier<AuthState> {
 /// Přihlašovací údaje zadává uživatel přímo na stránce Googlu.
 const _loginUrl =
     'https://accounts.google.com/ServiceLogin?service=youtube&uilel=3&passive=true'
-    '&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Den'
-    '%26next%3Dhttps%253A%252F%252Fwww.youtube.com%252F&hl=en';
+    '&continue=https%3A%2F%2Fwww.youtube.com%2Fsignin%3Faction_handle_signin%3Dtrue%26app%3Ddesktop%26hl%3Dcs'
+    '%26next%3Dhttps%253A%252F%252Fwww.youtube.com%252F&hl=cs';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -115,14 +123,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.white)
       ..setNavigationDelegate(
-        NavigationDelegate(onProgress: (p) => setState(() => _progress = p), onPageFinished: _onPageFinished),
+        NavigationDelegate(
+          onProgress: (p) => setState(() => _progress = p),
+          onPageFinished: _onPageFinished,
+        ),
       )
       ..loadRequest(Uri.parse(_loginUrl));
   }
 
   Future<void> _onPageFinished(String url) async {
     final host = Uri.tryParse(url)?.host ?? '';
-    if (_finishing || !(host == 'www.youtube.com' || host == 'm.youtube.com')) return;
+    if (_finishing ||
+        !(host == 'www.youtube.com' || host == 'm.youtube.com')) {
+      return;
+    }
     _finishing = true;
     final ok = await ref.read(authProvider.notifier).completeSignIn();
     if (!mounted) return;
@@ -136,18 +150,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: const Text('Přihlášení'),
-      leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Symbols.close)),
-      bottom: _progress < 100
-          ? PreferredSize(
-              preferredSize: const Size.fromHeight(2),
-              child: LinearProgressIndicator(value: _progress / 100, minHeight: 2, color: YtColors.red),
-            )
-          : null,
-    ),
-    body: WebViewWidget(controller: _controller),
-  );
+        appBar: AppBar(
+          title: const Text('Přihlášení'),
+          leading: IconButton(
+            onPressed: () => context.pop(),
+            icon: const Icon(Symbols.close),
+          ),
+          bottom: _progress < 100
+              ? PreferredSize(
+                  preferredSize: const Size.fromHeight(2),
+                  child: LinearProgressIndicator(
+                    value: _progress / 100,
+                    minHeight: 2,
+                    color: YtColors.red,
+                  ),
+                )
+              : null,
+        ),
+        body: WebViewWidget(controller: _controller),
+      );
 }
 
 /// Hlavička sekce Vy: účet nebo výzva k přihlášení a seznamy z účtu YouTube.
@@ -155,6 +176,7 @@ Widget accountHeader(BuildContext context, WidgetRef ref) {
   final auth = ref.watch(authProvider).value ?? const AuthState();
   final c = context.yt;
   final account = auth.account;
+
   if (!auth.signedIn) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -170,8 +192,14 @@ Widget accountHeader(BuildContext context, WidgetRef ref) {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Vy', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
-                Text('Vaše knihovna je uložena v tomto zařízení', style: TextStyle(color: c.textSecondary, fontSize: 13)),
+                const Text(
+                  'Vy',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+                ),
+                Text(
+                  'Vaše knihovna je uložena v tomto zařízení',
+                  style: TextStyle(color: c.textSecondary, fontSize: 13),
+                ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   onPressed: () => context.push('/login'),
@@ -190,8 +218,12 @@ Widget accountHeader(BuildContext context, WidgetRef ref) {
       ),
     );
   }
+
   void open(String browseId, String title) =>
-      context.push('${branchPrefix(context)}/account/$browseId?title=${Uri.encodeQueryComponent(title)}');
+      context.push(
+        '${branchPrefix(context)}/account/$browseId?title=${Uri.encodeQueryComponent(title)}',
+      );
+
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -205,23 +237,46 @@ Widget accountHeader(BuildContext context, WidgetRef ref) {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(account?.name ?? 'Přihlášený uživatel', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
-                  if (account?.handle != null) Text(account!.handle!, style: TextStyle(color: c.textSecondary)),
+                  Text(
+                    account?.name ?? 'Přihlášený uživatel',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (account?.handle != null)
+                    Text(
+                      account!.handle!,
+                      style: TextStyle(color: c.textSecondary),
+                    ),
                   TextButton(
-                    style: TextButton.styleFrom(padding: EdgeInsets.zero, foregroundColor: c.link),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      foregroundColor: c.link,
+                    ),
                     onPressed: () async {
                       final ok = await showDialog<bool>(
                         context: context,
                         builder: (d) => AlertDialog(
                           title: const Text('Odhlásit se?'),
-                          content: const Text('Vaše knihovna v tomto zařízení zůstane zachována.'),
+                          content: const Text(
+                            'Vaše knihovna v tomto zařízení zůstane zachována.',
+                          ),
                           actions: [
-                            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Zrušit')),
-                            TextButton(onPressed: () => Navigator.pop(d, true), child: const Text('Odhlásit se')),
+                            TextButton(
+                              onPressed: () => Navigator.pop(d, false),
+                              child: const Text('Zrušit'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(d, true),
+                              child: const Text('Odhlásit se'),
+                            ),
                           ],
                         ),
                       );
-                      if (ok == true) await ref.read(authProvider.notifier).signOut();
+                      if (ok == true) {
+                        await ref.read(authProvider.notifier).signOut();
+                      }
                     },
                     child: const Text('Odhlásit se'),
                   ),
@@ -264,12 +319,18 @@ Widget accountHeader(BuildContext context, WidgetRef ref) {
   );
 }
 
-Future<void> _importAccountSubscriptions(BuildContext context, WidgetRef ref) async {
+Future<void> _importAccountSubscriptions(
+  BuildContext context,
+  WidgetRef ref,
+) async {
   showSnack(context, 'Importuji odběry…');
   try {
     final yt = ref.read(innerTubeProvider);
     var page = await yt.subscribedChannels();
-    final channels = <ChannelItem>[...page.entries.allItems.whereType<ChannelItem>()];
+    final channels = <ChannelItem>[
+      ...page.entries.allItems.whereType<ChannelItem>(),
+    ];
+
     // Načítání dalších stránek, pokud je seznam odběrů dlouhý.
     while (page.continuation != null && channels.length < 5000) {
       page = await yt.browseContinuation(page.continuation!);
@@ -277,8 +338,12 @@ Future<void> _importAccountSubscriptions(BuildContext context, WidgetRef ref) as
       if (more.isEmpty) break;
       channels.addAll(more);
     }
+
     await ref.read(libraryProvider).importSubscriptions(channels);
-    unawaited(ref.read(subscriptionsFeedServiceProvider).refresh(force: true));
+    unawaited(
+      ref.read(subscriptionsFeedServiceProvider).refresh(force: true),
+    );
+
     if (context.mounted) {
       showSnack(
         context,
@@ -289,13 +354,17 @@ Future<void> _importAccountSubscriptions(BuildContext context, WidgetRef ref) as
     }
   } catch (e, st) {
     debugPrint('YouPipe: import odběrů z účtu selhal: $e\n$st');
-    if (context.mounted) showSnack(context, 'Odběry se nepodařilo importovat');
+    if (context.mounted) {
+      showSnack(context, 'Odběry se nepodařilo importovat');
+    }
   }
 }
 
 /// Seznam z účtu (historie YouTube, playlisty).
 final accountFeedProvider = AsyncNotifierProvider.autoDispose
-    .family<AccountFeedController, PagedList<FeedEntry>, String>(AccountFeedController.new);
+    .family<AccountFeedController, PagedList<FeedEntry>, String>(
+  AccountFeedController.new,
+);
 
 class AccountFeedController extends AsyncNotifier<PagedList<FeedEntry>> {
   AccountFeedController(this.browseId);
@@ -311,18 +380,39 @@ class AccountFeedController extends AsyncNotifier<PagedList<FeedEntry>> {
   Future<void> loadMore() async {
     final current = state.value;
     if (current == null || !current.hasMore || current.loadingMore) return;
-    state = AsyncData(PagedList(current.items, continuation: current.continuation, loadingMore: true));
+
+    state = AsyncData(
+      PagedList(
+        current.items,
+        continuation: current.continuation,
+        loadingMore: true,
+      ),
+    );
+
     try {
-      final more = await ref.read(innerTubeProvider).browseContinuation(current.continuation!);
-      state = AsyncData(PagedList([...current.items, ...more.entries], continuation: more.continuation));
+      final more = await ref
+          .read(innerTubeProvider)
+          .browseContinuation(current.continuation!);
+      state = AsyncData(
+        PagedList(
+          [...current.items, ...more.entries],
+          continuation: more.continuation,
+        ),
+      );
     } catch (_) {
-      state = AsyncData(PagedList(current.items, continuation: current.continuation));
+      state = AsyncData(
+        PagedList(current.items, continuation: current.continuation),
+      );
     }
   }
 }
 
 class AccountFeedScreen extends ConsumerWidget {
-  const AccountFeedScreen({super.key, required this.browseId, required this.title});
+  const AccountFeedScreen({
+    super.key,
+    required this.browseId,
+    required this.title,
+  });
 
   final String browseId;
   final String title;
@@ -331,25 +421,34 @@ class AccountFeedScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final feed = ref.watch(accountFeedProvider(browseId));
     final entries = feed.value?.items ?? const <FeedEntry>[];
+
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Symbols.arrow_back)),
+        leading: IconButton(
+          onPressed: () => context.pop(),
+          icon: const Icon(Symbols.arrow_back),
+        ),
       ),
       body: feed.hasError && entries.isEmpty
-          ? ErrorView(error: feed.error!, onRetry: () => ref.invalidate(accountFeedProvider(browseId)))
+          ? ErrorView(
+              error: feed.error!,
+              onRetry: () => ref.invalidate(accountFeedProvider(browseId)),
+            )
           : feed.isLoading && entries.isEmpty
-          ? const LoadingView()
-          : LoadMoreListener(
-              onLoadMore: () => ref.read(accountFeedProvider(browseId).notifier).loadMore(),
-              child: ListView.builder(
-                itemCount: entries.length,
-                itemBuilder: (_, i) => switch (entries[i]) {
-                  ItemEntry(item: final VideoItem v) => VideoRow(v),
-                  final e => FeedEntryView(e),
-                },
-              ),
-            ),
+              ? const LoadingView()
+              : LoadMoreListener(
+                  onLoadMore: () => ref
+                      .read(accountFeedProvider(browseId).notifier)
+                      .loadMore(),
+                  child: ListView.builder(
+                    itemCount: entries.length,
+                    itemBuilder: (_, i) => switch (entries[i]) {
+                      ItemEntry(item: final VideoItem v) => VideoRow(v),
+                      final e => FeedEntryView(e),
+                    },
+                  ),
+                ),
     );
   }
 }
