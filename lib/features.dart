@@ -1,3 +1,4 @@
+```dart
 /// Feature registration: later phases (downloads, sign-in, SponsorBlock, cast, updates) plug their routes, menu
 /// entries, settings sections and startup providers in here, so the core screens don't import them directly.
 library;
@@ -44,7 +45,7 @@ void registerFeatures() {
   downloadStarter = startDownload;
   downloadPillBuilder = downloadPill;
   extraDetailRoutes.add(() => GoRoute(path: 'downloads', builder: (_, _) => const DownloadsScreen()));
-  youExtraEntries.add((icon: Symbols.download, label: 'Downloads', onTap: openDownloads));
+  youExtraEntries.add((icon: Symbols.download, label: 'Stažená videa', onTap: openDownloads));
 
   // Optional Google sign-in: the You header, the login page, account lists, and syncing likes/subscriptions.
   rootProviders.add(authProvider);
@@ -76,3 +77,4 @@ void registerFeatures() {
   // Import / export subscriptions (Google Takeout, NewPipe).
   ChannelsScreen.extraActions.add(subscriptionsMenu);
 }
+```
