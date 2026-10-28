@@ -1,3 +1,4 @@
+```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,39 +8,39 @@ import '../../providers.dart';
 import '../../ui/theme/yt_theme.dart';
 import '../../ui/widgets/common.dart';
 
-/// Extra settings sections registered by later features (SponsorBlock, downloads, account, updates).
+/// Další sekce nastavení přidávané funkcemi aplikace.
 final settingsExtraSections = <Widget Function(BuildContext, WidgetRef)>[];
 
 const _languages = {
-  'en': 'English',
-  'hi': 'हिन्दी',
-  'ml': 'മലയാളം',
-  'ta': 'தமிழ்',
-  'es': 'Español',
-  'fr': 'Français',
-  'de': 'Deutsch',
-  'pt': 'Português',
-  'it': 'Italiano',
-  'ja': '日本語',
-  'ko': '한국어',
-  'ar': 'العربية',
-  'ru': 'Русский',
+  'en': 'Angličtina',
+  'hi': 'Hindština',
+  'ml': 'Malajálamština',
+  'ta': 'Tamilština',
+  'es': 'Španělština',
+  'fr': 'Francouzština',
+  'de': 'Němčina',
+  'pt': 'Portugalština',
+  'it': 'Italština',
+  'ja': 'Japonština',
+  'ko': 'Korejština',
+  'ar': 'Arabština',
+  'ru': 'Ruština',
 };
 
 const _regions = {
-  'US': 'United States',
-  'GB': 'United Kingdom',
-  'IE': 'Ireland',
-  'IN': 'India',
-  'CA': 'Canada',
-  'AU': 'Australia',
-  'DE': 'Germany',
-  'FR': 'France',
-  'ES': 'Spain',
-  'BR': 'Brazil',
-  'JP': 'Japan',
-  'KR': 'South Korea',
-  'AE': 'United Arab Emirates',
+  'US': 'Spojené státy',
+  'GB': 'Spojené království',
+  'IE': 'Irsko',
+  'IN': 'Indie',
+  'CA': 'Kanada',
+  'AU': 'Austrálie',
+  'DE': 'Německo',
+  'FR': 'Francie',
+  'ES': 'Španělsko',
+  'BR': 'Brazílie',
+  'JP': 'Japonsko',
+  'KR': 'Jižní Korea',
+  'AE': 'Spojené arabské emiráty',
 };
 
 class SettingsScreen extends ConsumerWidget {
@@ -50,81 +51,109 @@ class SettingsScreen extends ConsumerWidget {
     final s = ref.watch(settingsProvider);
     final ctl = ref.read(settingsProvider.notifier);
     final c = context.yt;
+
     Widget header(String t) => Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
-      child: Text(
-        t,
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: c.textSecondary),
-      ),
-    );
-    Future<T?> pick<T>(String title, Map<T, String> options, T selected) => showDialog<T>(
-      context: context,
-      builder: (d) => SimpleDialog(
-        title: Text(title),
-        children: [
-          for (final e in options.entries)
-            ChoiceTile(title: e.value, selected: e.key == selected, onTap: () => Navigator.pop(d, e.key)),
-        ],
-      ),
-    );
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+          child: Text(
+            t,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: c.textSecondary,
+            ),
+          ),
+        );
+
+    Future<T?> pick<T>(
+      String title,
+      Map<T, String> options,
+      T selected,
+    ) =>
+        showDialog<T>(
+          context: context,
+          builder: (d) => SimpleDialog(
+            title: Text(title),
+            children: [
+              for (final e in options.entries)
+                ChoiceTile(
+                  title: e.value,
+                  selected: e.key == selected,
+                  onTap: () => Navigator.pop(d, e.key),
+                ),
+            ],
+          ),
+        );
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
-        leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Symbols.arrow_back)),
+        title: const Text('Nastavení'),
+        leading: IconButton(
+          onPressed: () => context.pop(),
+          icon: const Icon(Symbols.arrow_back),
+        ),
       ),
       body: MaxContentWidth(
         child: ListView(
           children: [
-            header('General'),
+            header('Obecné'),
             ListTile(
-              title: const Text('Appearance'),
+              title: const Text('Vzhled'),
               subtitle: Text(switch (s.themeMode) {
-                ThemeMode.system => 'Use device theme',
-                ThemeMode.dark => 'Dark theme',
-                ThemeMode.light => 'Light theme',
+                ThemeMode.system => 'Podle systému',
+                ThemeMode.dark => 'Tmavý motiv',
+                ThemeMode.light => 'Světlý motiv',
               }),
               onTap: () async {
-                final m = await pick('Appearance', {
-                  ThemeMode.system: 'Use device theme',
-                  ThemeMode.dark: 'Dark theme',
-                  ThemeMode.light: 'Light theme',
+                final m = await pick('Vzhled', {
+                  ThemeMode.system: 'Podle systému',
+                  ThemeMode.dark: 'Tmavý motiv',
+                  ThemeMode.light: 'Světlý motiv',
                 }, s.themeMode);
-                if (m != null) await ctl.update(s.copyWith(themeMode: m));
+                if (m != null) {
+                  await ctl.update(s.copyWith(themeMode: m));
+                }
               },
             ),
             ListTile(
-              title: const Text('Language'),
+              title: const Text('Jazyk obsahu'),
               subtitle: Text(_languages[s.hl] ?? s.hl),
               onTap: () async {
-                final v = await pick('Language', _languages, s.hl);
-                if (v != null) await ctl.update(s.copyWith(hl: v));
+                final v = await pick('Jazyk obsahu', _languages, s.hl);
+                if (v != null) {
+                  await ctl.update(s.copyWith(hl: v));
+                }
               },
             ),
             ListTile(
-              title: const Text('Location'),
+              title: const Text('Oblast obsahu'),
               subtitle: Text(_regions[s.gl] ?? s.gl),
               onTap: () async {
-                final v = await pick('Location', _regions, s.gl);
-                if (v != null) await ctl.update(s.copyWith(gl: v));
+                final v = await pick('Oblast obsahu', _regions, s.gl);
+                if (v != null) {
+                  await ctl.update(s.copyWith(gl: v));
+                }
               },
             ),
             SwitchListTile(
-              title: const Text('Picture-in-picture'),
-              subtitle: const Text('Keep watching in a small window when you leave the app'),
+              title: const Text('Obraz v obraze'),
+              subtitle: const Text(
+                'Pokračovat ve sledování v malém okně po opuštění aplikace',
+              ),
               value: s.pip,
               onChanged: (v) => ctl.update(s.copyWith(pip: v)),
             ),
             const Divider(),
-            // Autoplay is switched in the player, like YouTube (docs/playback.md).
-            header('Playback'),
+
+            // Automatické přehrávání se ovládá přímo v přehrávači.
+            header('Přehrávání'),
             SwitchListTile(
-              title: const Text('Resume where you left off'),
+              title: const Text('Pokračovat tam, kde jsem skončil'),
               value: s.resume,
               onChanged: (v) => ctl.update(s.copyWith(resume: v)),
             ),
             const Divider(),
-            header('Video quality preferences'),
+
+            header('Předvolby kvality videa'),
             for (final q in VideoQualityPref.values)
               ChoiceTile(
                 title: q.label,
@@ -132,44 +161,61 @@ class SettingsScreen extends ConsumerWidget {
                 selected: q == s.quality,
                 onTap: () => ctl.update(s.copyWith(quality: q)),
               ),
-            for (final section in settingsExtraSections) section(context, ref),
+
+            for (final section in settingsExtraSections)
+              section(context, ref),
+
             const Divider(),
-            header('Manage all history'),
+            header('Správa historie'),
             SwitchListTile(
-              title: const Text('Pause watch history'),
+              title: const Text('Pozastavit historii sledování'),
               value: !s.saveHistory,
-              onChanged: (v) => ctl.update(s.copyWith(saveHistory: !v)),
+              onChanged: (v) =>
+                  ctl.update(s.copyWith(saveHistory: !v)),
             ),
             SwitchListTile(
-              title: const Text('Pause search history'),
+              title: const Text('Pozastavit historii vyhledávání'),
               value: !s.saveSearchHistory,
-              onChanged: (v) => ctl.update(s.copyWith(saveSearchHistory: !v)),
+              onChanged: (v) =>
+                  ctl.update(s.copyWith(saveSearchHistory: !v)),
             ),
             ListTile(
-              title: const Text('Clear watch history'),
+              title: const Text('Vymazat historii sledování'),
               onTap: () async {
                 await ref.read(libraryProvider).clearHistory();
-                if (context.mounted) showSnack(context, 'Watch history cleared');
+                if (context.mounted) {
+                  showSnack(context, 'Historie sledování byla vymazána');
+                }
               },
             ),
             ListTile(
-              title: const Text('Clear search history'),
+              title: const Text('Vymazat historii vyhledávání'),
               onTap: () async {
                 await ref.read(libraryProvider).clearSearches();
-                if (context.mounted) showSnack(context, 'Search history cleared');
+                if (context.mounted) {
+                  showSnack(context, 'Historie vyhledávání byla vymazána');
+                }
               },
             ),
             const Divider(),
-            header('About'),
+
+            header('O aplikaci'),
             ListTile(
-              title: const Text('Open source licenses'),
-              onTap: () => showLicensePage(context: context, applicationName: 'YouPipe'),
+              title: const Text('Licence open source'),
+              onTap: () => showLicensePage(
+                context: context,
+                applicationName: 'YouPipe',
+              ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               child: Text(
-                'YouPipe is an independent, open-source app. It isn\'t made by or affiliated with YouTube or Google.',
-                style: TextStyle(color: c.textSecondary, fontSize: 12),
+                'YouPipe je nezávislá aplikace s otevřeným zdrojovým kódem. '
+                'Není vytvořena společností YouTube ani Google a není s nimi spojena.',
+                style: TextStyle(
+                  color: c.textSecondary,
+                  fontSize: 12,
+                ),
               ),
             ),
           ],
@@ -178,3 +224,4 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 }
+```
