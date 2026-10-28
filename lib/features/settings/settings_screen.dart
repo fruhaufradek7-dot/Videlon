@@ -204,13 +204,13 @@ class SettingsScreen extends ConsumerWidget {
               title: const Text('Licence open source'),
               onTap: () => showLicensePage(
                 context: context,
-                applicationName: 'YouPipe',
+                applicationName: 'YouPipe CZ',
               ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               child: Text(
-                'YouPipe je nezávislá aplikace s otevřeným zdrojovým kódem. '
+                'YouPipe CZ je nezávislá aplikace s otevřeným zdrojovým kódem. '
                 'Není vytvořena společností YouTube ani Google a není s nimi spojena.',
                 style: TextStyle(
                   color: c.textSecondary,
@@ -224,4 +224,3 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 }
-
