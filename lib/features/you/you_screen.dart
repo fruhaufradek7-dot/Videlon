@@ -1,3 +1,4 @@
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -16,11 +17,11 @@ import '../../ui/widgets/video_menu.dart';
 import '../../ui/widgets/video_tiles.dart';
 import '../playlist/playlist_screen.dart';
 
-/// Entries added by later features (Downloads, account) as (icon, label, onTap).
+/// Položky přidané pozdějšími funkcemi (stahování, účet) ve formátu (ikona, název, akce).
 typedef YouEntry = ({IconData icon, String label, void Function(BuildContext, WidgetRef) onTap});
 final youExtraEntries = <YouEntry>[];
 
-/// A widget shown at the top of You (the account header once sign-in exists).
+/// Widget zobrazený nahoře na stránce Vy (záhlaví účtu po přihlášení).
 Widget Function(BuildContext, WidgetRef)? youHeaderBuilder;
 
 class YouScreen extends ConsumerWidget {
@@ -49,7 +50,7 @@ class YouScreen extends ConsumerWidget {
                 foregroundColor: c.textPrimary,
                 visualDensity: VisualDensity.compact,
               ),
-              child: const Text('View all'),
+              child: const Text('Zobrazit vše'),
             ),
         ],
       ),
@@ -77,9 +78,9 @@ class YouScreen extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('You', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+                              const Text('Vy', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
                               Text(
-                                'Your library lives on this device',
+                                'Vaše knihovna je uložena v tomto zařízení',
                                 style: TextStyle(color: c.textSecondary, fontSize: 13),
                               ),
                             ],
@@ -90,13 +91,13 @@ class YouScreen extends ConsumerWidget {
                   ),
             ),
             SliverToBoxAdapter(
-              child: sectionTitle('History', history.isEmpty ? null : () => openHistory(context, ref)),
+              child: sectionTitle('Historie', history.isEmpty ? null : () => openHistory(context, ref)),
             ),
             SliverToBoxAdapter(
               child: history.isEmpty
                   ? Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text("Videos you watch will show up here", style: TextStyle(color: c.textSecondary)),
+                      child: Text("Zde se zobrazí videa, která sledujete", style: TextStyle(color: c.textSecondary)),
                     )
                   : SizedBox(
                       height: 160 * 9 / 16 + 70,
@@ -114,17 +115,17 @@ class YouScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(12, 20, 8, 12),
                 child: Row(
                   children: [
-                    const Text('Playlists', style: YtText.sectionTitle),
+                    const Text('Playlisty', style: YtText.sectionTitle),
                     const Spacer(),
                     IconButton(
                       onPressed: () async {
-                        final name = await promptText(context, title: 'New playlist', hint: 'Choose a title');
+                        final name = await promptText(context, title: 'Nový playlist', hint: 'Zadejte název');
                         if (name != null && name.trim().isNotEmpty) {
                           await ref.read(libraryProvider).createPlaylist(name.trim());
                         }
                       },
                       icon: const Icon(Symbols.add),
-                      tooltip: 'New playlist',
+                      tooltip: 'Nový playlist',
                     ),
                   ],
                 ),
@@ -138,8 +139,8 @@ class YouScreen extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   children: [
                     _PlaylistCard(
-                      title: 'Liked videos',
-                      subtitle: '${liked.length} videos',
+                      title: 'Oblíbená videa',
+                      subtitle: '${liked.length} videí',
                       thumbnail: liked.firstOrNull?.thumbnailOrDefault,
                       icon: Symbols.thumb_up,
                       onTap: () => context.push('${branchPrefix(context)}/local/${LocalPlaylistScreen.liked}'),
@@ -147,7 +148,7 @@ class YouScreen extends ConsumerWidget {
                     for (final p in playlists)
                       _PlaylistCard(
                         title: p.playlist.name,
-                        subtitle: p.playlist.isWatchLater ? '${p.count} videos' : 'Private · ${p.count} videos',
+                        subtitle: p.playlist.isWatchLater ? '${p.count} videí' : 'Soukromý · ${p.count} videí',
                         thumbnail: p.thumbnail,
                         icon: p.playlist.isWatchLater ? Symbols.schedule : null,
                         onTap: () => openLocalPlaylist(context, ref, p.playlist.id),
@@ -175,18 +176,18 @@ class YouScreen extends ConsumerWidget {
                   ),
                 ListTile(
                   leading: const Icon(Symbols.subscriptions, weight: 300),
-                  title: const Text('Your subscriptions'),
+                  title: const Text('Vaše odběry'),
                   onTap: () => openChannels(context, ref),
                 ),
                 ListTile(
                   leading: const Icon(Symbols.history, weight: 300),
-                  title: const Text('History'),
+                  title: const Text('Historie'),
                   onTap: () => openHistory(context, ref),
                 ),
                 const Divider(),
                 ListTile(
                   leading: const Icon(Symbols.settings, weight: 300),
-                  title: const Text('Settings'),
+                  title: const Text('Nastavení'),
                   onTap: () => openSettings(context, ref),
                 ),
                 const SizedBox(height: 24),
@@ -231,7 +232,7 @@ class _PlaylistCard extends StatelessWidget {
   );
 }
 
-/// Watch history, newest first, grouped like YouTube (Today, Yesterday, This week, then by month).
+/// Historie sledování od nejnovějších, seskupená podle dnů a měsíců.
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
 
@@ -242,25 +243,25 @@ class HistoryScreen extends ConsumerWidget {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
+      'leden',
+      'únor',
+      'březen',
+      'duben',
+      'květen',
+      'červen',
+      'červenec',
+      'srpen',
+      'září',
+      'říjen',
+      'listopad',
+      'prosinec',
     ];
     String group(DateTime t) {
       final day = DateTime(t.year, t.month, t.day);
       final d = today.difference(day).inDays;
-      if (d <= 0) return 'Today';
-      if (d == 1) return 'Yesterday';
-      if (d < 7) return 'This week';
+      if (d <= 0) return 'Dnes';
+      if (d == 1) return 'Včera';
+      if (d < 7) return 'Tento týden';
       return t.year == now.year ? months[t.month - 1] : '${months[t.month - 1]} ${t.year}';
     }
 
@@ -274,22 +275,22 @@ class HistoryScreen extends ConsumerWidget {
     }
     return Scaffold(
       appBar: AppBar(
-        title: const Text('History'),
+        title: const Text('Historie'),
         leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Symbols.arrow_back)),
         actions: [
           if (history.isNotEmpty)
             IconButton(
-              tooltip: 'Clear all watch history',
+              tooltip: 'Vymazat celou historii sledování',
               icon: const Icon(Symbols.delete),
               onPressed: () async {
                 final ok = await showDialog<bool>(
                   context: context,
                   builder: (d) => AlertDialog(
-                    title: const Text('Clear watch history?'),
-                    content: const Text('Your watch history will be cleared from this device.'),
+                    title: const Text('Vymazat historii sledování?'),
+                    content: const Text('Historie sledování bude z tohoto zařízení vymazána.'),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
-                      TextButton(onPressed: () => Navigator.pop(d, true), child: const Text('Clear watch history')),
+                      TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Zrušit')),
+                      TextButton(onPressed: () => Navigator.pop(d, true), child: const Text('Vymazat historii')),
                     ],
                   ),
                 );
@@ -302,8 +303,8 @@ class HistoryScreen extends ConsumerWidget {
         child: history.isEmpty
             ? const EmptyView(
                 icon: Symbols.history,
-                title: 'Keep track of what you watch',
-                message: 'Watch history isn\'t viewable when empty.',
+                title: 'Mějte přehled o sledovaných videích',
+                message: 'Zatím zde není žádná historie sledování.',
               )
             : ListView.builder(
                 itemCount: rows.length,
@@ -316,9 +317,9 @@ class HistoryScreen extends ConsumerWidget {
                     h.video,
                     onRemove: () {
                       unawaited(lib.removeFromHistory(h.video.id));
-                      showSnack(context, 'Removed from watch history');
+                      showSnack(context, 'Odebráno z historie sledování');
                     },
-                    removeLabel: 'Remove from watch history',
+                    removeLabel: 'Odebrat z historie sledování',
                   ),
                   _ => const SizedBox.shrink(),
                 },
