@@ -1,5 +1,5 @@
 
-name: Build YouPipe APK
+name: Build Videlon APK
 
 on:
   workflow_dispatch:
@@ -28,16 +28,22 @@ jobs:
           flutter-version: "3.47.8"
           cache: true
 
+      - name: Show Flutter environment
+        run: flutter doctor -v
+
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Check Dart code
+        run: flutter analyze
+
       - name: Build APK
-        run: flutter build apk --debug --verbose
+        run: flutter build apk --debug --verbose --stacktrace
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: YouPipe-CZ-APK
+          name: Videlon-APK
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
-
