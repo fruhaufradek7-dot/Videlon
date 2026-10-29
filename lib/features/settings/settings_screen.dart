@@ -211,7 +211,7 @@ class SettingsScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               child: Text(
-                'YouPipe CZ je nezávislá aplikace s otevřeným zdrojovým kódem. '
+                'Videlon je nezávislá aplikace s otevřeným zdrojovým kódem. '
                 'Není vytvořena společností YouTube ani Google a není s nimi spojena.',
                 style: TextStyle(
                   color: c.textSecondary,
