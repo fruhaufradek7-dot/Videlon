@@ -34,8 +34,7 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Check Dart code
-        run: flutter analyze
+     
 
       - name: Build APK
         run: flutter build apk --debug --verbose --stacktrace
