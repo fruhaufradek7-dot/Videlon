@@ -1,4 +1,4 @@
-
+```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,16 +13,25 @@ import '../../ui/widgets/html_text.dart';
 import '../../ui/widgets/video_tiles.dart';
 
 /// Záložky kanálu podporované aplikací.
-const _supportedTabs = {'Home', 'Videos', 'Shorts', 'Live', 'Releases', 'Playlists', 'Podcasts'};
+/// Podporuje anglické i české názvy z YouTube.
+const _supportedTabs = {
+  'Home', 'Domů',
+  'Videos', 'Videa',
+  'Shorts', 'Krátká videa',
+  'Live', 'Živě',
+  'Releases', 'Novinky',
+  'Playlists', 'Playlisty',
+  'Podcasts', 'Podcasty',
+};
 
 String _translatedTab(String title) => switch (title) {
-      'Home' => 'Domů',
-      'Videos' => 'Videa',
-      'Shorts' => 'Krátká videa',
-      'Live' => 'Živě',
-      'Releases' => 'Novinky',
-      'Playlists' => 'Playlisty',
-      'Podcasts' => 'Podcasty',
+      'Home' || 'Domů' => 'Domů',
+      'Videos' || 'Videa' => 'Videa',
+      'Shorts' || 'Krátká videa' => 'Krátká videa',
+      'Live' || 'Živě' => 'Živě',
+      'Releases' || 'Novinky' => 'Novinky',
+      'Playlists' || 'Playlisty' => 'Playlisty',
+      'Podcasts' || 'Podcasty' => 'Podcasty',
       _ => title,
     };
 
@@ -38,12 +47,18 @@ class ChannelScreen extends ConsumerWidget {
       loading: () => Scaffold(appBar: AppBar(), body: const LoadingView()),
       error: (e, _) => Scaffold(
         appBar: AppBar(),
-        body: ErrorView(error: e, onRetry: () => ref.invalidate(channelProvider((channelId: channelId, params: null)))),
+        body: ErrorView(
+          error: e,
+          onRetry: () => ref.invalidate(
+            channelProvider((channelId: channelId, params: null)),
+          ),
+        ),
       ),
       data: (p) {
         // Aktualizuje název a obrázek kanálu v odběrech.
         ref.read(libraryProvider).refreshSubscription(p.asItem);
         final tabs = p.tabs.where((t) => _supportedTabs.contains(t.title)).toList();
+
         return DefaultTabController(
           length: tabs.length,
           child: Scaffold(
@@ -52,12 +67,17 @@ class ChannelScreen extends ConsumerWidget {
                 SliverAppBar(
                   pinned: true,
                   title: Text(p.name),
-                  leading: IconButton(onPressed: () => context.pop(), icon: const Icon(Symbols.arrow_back)),
+                  leading: IconButton(
+                    onPressed: () => context.pop(),
+                    icon: const Icon(Symbols.arrow_back),
+                  ),
                   actions: [
                     IconButton(
                       tooltip: 'Sdílet kanál',
                       onPressed: () => SharePlus.instance.share(
-                        ShareParams(text: 'https://www.youtube.com/${p.handle ?? 'channel/${p.id}'}'),
+                        ShareParams(
+                          text: 'https://www.youtube.com/${p.handle ?? 'channel/${p.id}'}',
+                        ),
                       ),
                       icon: const Icon(Symbols.share, weight: 300),
                     ),
@@ -69,7 +89,10 @@ class ChannelScreen extends ConsumerWidget {
                   delegate: _TabBarDelegate(
                     TabBar(
                       isScrollable: true,
-                      tabs: [for (final t in tabs) Tab(text: _translatedTab(t.title))],
+                      tabs: [
+                        for (final t in tabs)
+                          Tab(text: _translatedTab(t.title)),
+                      ],
                     ),
                     context.yt.background,
                   ),
@@ -77,7 +100,12 @@ class ChannelScreen extends ConsumerWidget {
               ],
               body: TabBarView(
                 children: [
-                  for (final t in tabs) _TabContent(channelId: channelId, tab: t, initial: t.selected ? p : null),
+                  for (final t in tabs)
+                    _TabContent(
+                      channelId: channelId,
+                      tab: t,
+                      initial: t.selected ? p : null,
+                    ),
                 ],
               ),
             ),
@@ -96,6 +124,7 @@ class _Header extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.yt;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
       child: Column(
@@ -104,7 +133,10 @@ class _Header extends ConsumerWidget {
           if (page.banner != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
-              child: AspectRatio(aspectRatio: 6.2, child: YtImage(page.banner, radius: 12)),
+              child: AspectRatio(
+                aspectRatio: 6.2,
+                child: YtImage(page.banner, radius: 12),
+              ),
             ),
           Row(
             children: [
@@ -114,13 +146,28 @@ class _Header extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(page.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+                    Text(
+                      page.name,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     if (page.handle != null)
-                      Text(page.handle!, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                      Text(
+                        page.handle!,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     Text(
                       page.metadata.join(' · '),
-                      style: TextStyle(fontSize: 12, color: c.textSecondary),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: c.textSecondary,
+                      ),
                       maxLines: 2,
                     ),
                   ],
@@ -141,9 +188,18 @@ class _Header extends ConsumerWidget {
                     controller: scroll,
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                     children: [
-                      const Text('O kanálu', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+                      const Text(
+                        'O kanálu',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       const SizedBox(height: 12),
-                      HtmlText(page.description!, style: const TextStyle(fontSize: 14, height: 1.4)),
+                      HtmlText(
+                        page.description!,
+                        style: const TextStyle(fontSize: 14, height: 1.4),
+                      ),
                     ],
                   ),
                 ),
@@ -155,16 +211,25 @@ class _Header extends ConsumerWidget {
                       page.description!.replaceAll('\n', ' '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: c.textSecondary, fontSize: 13),
+                      style: TextStyle(
+                        color: c.textSecondary,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
-                  Icon(Symbols.chevron_right, color: c.textSecondary),
+                  Icon(
+                    Symbols.chevron_right,
+                    color: c.textSecondary,
+                  ),
                 ],
               ),
             ),
           ],
           const SizedBox(height: 12),
-          SizedBox(width: double.infinity, child: SubscribeButton(page.asItem)),
+          SizedBox(
+            width: double.infinity,
+            child: SubscribeButton(page.asItem),
+          ),
         ],
       ),
     );
@@ -184,15 +249,24 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => tabBar.preferredSize.height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) =>
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) =>
       ColoredBox(color: color, child: tabBar);
 
   @override
-  bool shouldRebuild(_TabBarDelegate old) => old.tabBar != tabBar || old.color != color;
+  bool shouldRebuild(_TabBarDelegate old) =>
+      old.tabBar != tabBar || old.color != color;
 }
 
 class _TabContent extends ConsumerStatefulWidget {
-  const _TabContent({required this.channelId, required this.tab, this.initial});
+  const _TabContent({
+    required this.channelId,
+    required this.tab,
+    this.initial,
+  });
 
   final String channelId;
   final ChannelTab tab;
@@ -202,7 +276,8 @@ class _TabContent extends ConsumerStatefulWidget {
   ConsumerState<_TabContent> createState() => _TabContentState();
 }
 
-class _TabContentState extends ConsumerState<_TabContent> with AutomaticKeepAliveClientMixin {
+class _TabContentState extends ConsumerState<_TabContent>
+    with AutomaticKeepAliveClientMixin {
   String? _sortToken;
   String _sortLabel = '';
 
@@ -212,9 +287,16 @@ class _TabContentState extends ConsumerState<_TabContent> with AutomaticKeepAliv
   @override
   Widget build(BuildContext context) {
     super.build(context);
+
     final params = widget.tab.selected ? null : widget.tab.params;
-    final tabPage = ref.watch(channelProvider((channelId: widget.channelId, params: params)));
-    final key = (channelId: widget.channelId, params: params, sortToken: _sortToken);
+    final tabPage = ref.watch(
+      channelProvider((channelId: widget.channelId, params: params)),
+    );
+    final key = (
+      channelId: widget.channelId,
+      params: params,
+      sortToken: _sortToken,
+    );
     final list = ref.watch(channelListProvider(key));
     final entries = list.value?.items ?? const <FeedEntry>[];
     final chips = tabPage.value?.sortChips ?? const <SortChip>[];
@@ -222,13 +304,21 @@ class _TabContentState extends ConsumerState<_TabContent> with AutomaticKeepAliv
     final items = entries.allItems.toList();
 
     Widget body;
+
     if (list.isLoading && entries.isEmpty) {
       body = const SliverToBoxAdapter(
-        child: Padding(padding: EdgeInsets.all(32), child: LoadingView()),
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: LoadingView(),
+        ),
       );
     } else if (list.hasError && entries.isEmpty) {
       body = SliverToBoxAdapter(
-        child: ErrorView(error: list.error!, compact: true, onRetry: () => ref.invalidate(channelListProvider(key))),
+        child: ErrorView(
+          error: list.error!,
+          compact: true,
+          onRetry: () => ref.invalidate(channelListProvider(key)),
+        ),
       );
     } else if (entries.isEmpty) {
       body = SliverToBoxAdapter(
@@ -237,13 +327,18 @@ class _TabContentState extends ConsumerState<_TabContent> with AutomaticKeepAliv
           child: Center(
             child: Text(
               switch (widget.tab.title) {
-                'Home' => 'Tento kanál zatím nemá žádný obsah.',
-                'Videos' => 'Tento kanál zatím nemá žádná videa.',
-                'Shorts' => 'Tento kanál zatím nemá žádná krátká videa.',
-                'Live' => 'Tento kanál zatím nemá žádná živá vysílání.',
-                'Releases' => 'Tento kanál zatím nemá žádné novinky.',
-                'Playlists' => 'Tento kanál zatím nemá žádné playlisty.',
-                'Podcasts' => 'Tento kanál zatím nemá žádné podcasty.',
+                'Home' || 'Domů' => 'Tento kanál zatím nemá žádný obsah.',
+                'Videos' || 'Videa' => 'Tento kanál zatím nemá žádná videa.',
+                'Shorts' || 'Krátká videa' =>
+                  'Tento kanál zatím nemá žádná krátká videa.',
+                'Live' || 'Živě' =>
+                  'Tento kanál zatím nemá žádná živá vysílání.',
+                'Releases' || 'Novinky' =>
+                  'Tento kanál zatím nemá žádné novinky.',
+                'Playlists' || 'Playlisty' =>
+                  'Tento kanál zatím nemá žádné playlisty.',
+                'Podcasts' || 'Podcasty' =>
+                  'Tento kanál zatím nemá žádné podcasty.',
                 _ => 'Tento kanál zatím nemá žádný obsah.',
               },
               style: TextStyle(color: context.yt.textSecondary),
@@ -265,7 +360,10 @@ class _TabContentState extends ConsumerState<_TabContent> with AutomaticKeepAliv
           ),
           itemCount: items.length,
           itemBuilder: (context, i) => switch (items[i]) {
-            final VideoItem v => LayoutBuilder(builder: (context, box) => ShortCard(v, width: box.maxWidth)),
+            final VideoItem v => LayoutBuilder(
+                builder: (context, box) =>
+                    ShortCard(v, width: box.maxWidth),
+              ),
             _ => const SizedBox.shrink(),
           },
         ),
@@ -275,7 +373,8 @@ class _TabContentState extends ConsumerState<_TabContent> with AutomaticKeepAliv
     }
 
     return LoadMoreListener(
-      onLoadMore: () => ref.read(channelListProvider(key).notifier).loadMore(),
+      onLoadMore: () =>
+          ref.read(channelListProvider(key).notifier).loadMore(),
       child: CustomScrollView(
         key: PageStorageKey(widget.tab.title),
         slivers: [
@@ -286,7 +385,9 @@ class _TabContentState extends ConsumerState<_TabContent> with AutomaticKeepAliv
                   for (final c in chips)
                     YtChip(
                       label: c.label,
-                      selected: _sortLabel.isEmpty ? c.selected : c.label == _sortLabel,
+                      selected: _sortLabel.isEmpty
+                          ? c.selected
+                          : c.label == _sortLabel,
                       onTap: () => setState(() {
                         _sortLabel = c.label;
                         _sortToken = c.selected ? null : c.token;
@@ -298,7 +399,10 @@ class _TabContentState extends ConsumerState<_TabContent> with AutomaticKeepAliv
           body,
           if (list.value?.loadingMore ?? false)
             const SliverToBoxAdapter(
-              child: Padding(padding: EdgeInsets.all(24), child: LoadingView()),
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: LoadingView(),
+              ),
             ),
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
           const SliverBottomInset(),
@@ -307,3 +411,4 @@ class _TabContentState extends ConsumerState<_TabContent> with AutomaticKeepAliv
     );
   }
 }
+```
