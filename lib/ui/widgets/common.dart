@@ -43,14 +43,22 @@ class YtImage extends StatelessWidget {
     if (circle) {
       image = ClipOval(child: image);
     } else if (radius > 0) {
-      image = ClipRRect(borderRadius: BorderRadius.circular(radius), child: image);
+      image = ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: image,
+      );
     }
     return SizedBox(width: width, height: height, child: image);
   }
 }
 
 class Avatar extends StatelessWidget {
-  const Avatar(this.url, {super.key, this.size = YtSizes.feedAvatar, this.name});
+  const Avatar(
+    this.url, {
+    super.key,
+    this.size = YtSizes.feedAvatar,
+    this.name,
+  });
 
   final String? url;
   final double size;
@@ -66,7 +74,11 @@ class Avatar extends StatelessWidget {
         backgroundColor: context.yt.chip,
         child: Text(
           (name ?? '?').replaceFirst('@', '').characters.firstOrNull?.toUpperCase() ?? '?',
-          style: TextStyle(fontSize: size * 0.42, color: context.yt.textPrimary, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontSize: size * 0.42,
+            color: context.yt.textPrimary,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       );
     }
@@ -111,7 +123,10 @@ class ShortsIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) => CustomPaint(
     size: Size.square(size),
-    painter: _ShortsPainter(color ?? IconTheme.of(context).color ?? context.yt.textPrimary, filled),
+    painter: _ShortsPainter(
+      color ?? IconTheme.of(context).color ?? context.yt.textPrimary,
+      filled,
+    ),
   );
 }
 
@@ -124,14 +139,21 @@ class _ShortsPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final s = size.width / 24;
-    final body = RRect.fromRectAndRadius(Rect.fromLTWH(5.5 * s, 2.5 * s, 13 * s, 19 * s), Radius.circular(4 * s));
+    final body = RRect.fromRectAndRadius(
+      Rect.fromLTWH(5.5 * s, 2.5 * s, 13 * s, 19 * s),
+      Radius.circular(4 * s),
+    );
     final play = Path()
       ..moveTo(10 * s, 8.5 * s)
       ..lineTo(15.5 * s, 12 * s)
       ..lineTo(10 * s, 15.5 * s)
       ..close();
+
     if (filled) {
-      canvas.drawPath(Path.combine(PathOperation.difference, Path()..addRRect(body), play), Paint()..color = color);
+      canvas.drawPath(
+        Path.combine(PathOperation.difference, Path()..addRRect(body), play),
+        Paint()..color = color,
+      );
     } else {
       canvas.drawRRect(
         body,
@@ -145,12 +167,19 @@ class _ShortsPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_ShortsPainter old) => old.color != color || old.filled != filled;
+  bool shouldRepaint(_ShortsPainter old) =>
+      old.color != color || old.filled != filled;
 }
 
 /// A YouTube chip (Home topics, search filters, sort options).
 class YtChip extends StatelessWidget {
-  const YtChip({super.key, required this.label, this.selected = false, this.onTap, this.icon});
+  const YtChip({
+    super.key,
+    required this.label,
+    this.selected = false,
+    this.onTap,
+    this.icon,
+  });
 
   final String label;
   final bool selected;
@@ -161,6 +190,7 @@ class YtChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.yt;
     final fg = selected ? c.onChipSelected : c.textPrimary;
+
     return FocusHighlight(
       radius: YtSizes.chipRadius,
       child: Material(
@@ -171,16 +201,19 @@ class YtChip extends StatelessWidget {
           onTap: onTap,
           child: Container(
             height: YtSizes.chipHeight,
-            padding: EdgeInsets.symmetric(horizontal: icon != null && label.isEmpty ? 8 : 12),
-            // widthFactor 1: hug the label even under a bounded width (in a Wrap), instead of stretching.
+            padding: EdgeInsets.symmetric(
+              horizontal: icon != null && label.isEmpty ? 8 : 12,
+            ),
             child: Align(
               widthFactor: 1,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (icon != null) Icon(icon, size: 20, color: fg),
-                  if (icon != null && label.isNotEmpty) const SizedBox(width: 6),
-                  if (label.isNotEmpty) Text(label, style: YtText.chip.copyWith(color: fg)),
+                  if (icon != null && label.isNotEmpty)
+                    const SizedBox(width: 6),
+                  if (label.isNotEmpty)
+                    Text(label, style: YtText.chip.copyWith(color: fg)),
                 ],
               ),
             ),
@@ -193,7 +226,11 @@ class YtChip extends StatelessWidget {
 
 /// A horizontally scrolling row of chips.
 class ChipBar extends StatelessWidget {
-  const ChipBar({super.key, required this.children, this.padding = const EdgeInsets.symmetric(horizontal: 12)});
+  const ChipBar({
+    super.key,
+    required this.children,
+    this.padding = const EdgeInsets.symmetric(horizontal: 12),
+  });
 
   final List<Widget> children;
   final EdgeInsets padding;
@@ -213,7 +250,14 @@ class ChipBar extends StatelessWidget {
 
 /// The rounded pill buttons under a video (Share, Download, Save…).
 class PillButton extends StatelessWidget {
-  const PillButton({super.key, this.icon, this.label, this.onTap, this.filledIcon = false, this.child});
+  const PillButton({
+    super.key,
+    this.icon,
+    this.label,
+    this.onTap,
+    this.filledIcon = false,
+    this.child,
+  });
 
   final IconData? icon;
   final String? label;
@@ -236,14 +280,22 @@ class PillButton extends StatelessWidget {
           height: YtSizes.pillHeight,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child:
-                child ??
+            child: child ??
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (icon != null) Icon(icon, size: 20, fill: filledIcon ? 1 : 0),
-                    if (icon != null && label != null) const SizedBox(width: 6),
-                    if (label != null) Text(label!, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                    if (icon != null)
+                      Icon(icon, size: 20, fill: filledIcon ? 1 : 0),
+                    if (icon != null && label != null)
+                      const SizedBox(width: 6),
+                    if (label != null)
+                      Text(
+                        label!,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                   ],
                 ),
           ),
@@ -261,7 +313,10 @@ class LoadingView extends StatelessWidget {
     child: SizedBox(
       width: 28,
       height: 28,
-      child: CircularProgressIndicator(strokeWidth: 3, color: context.yt.textSecondary),
+      child: CircularProgressIndicator(
+        strokeWidth: 3,
+        color: context.yt.textSecondary,
+      ),
     ),
   );
 }
@@ -275,11 +330,16 @@ class FeedSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.yt.skeleton;
+
     Widget bar(double w, double h) => Container(
       width: w,
       height: h,
-      decoration: BoxDecoration(color: c, borderRadius: BorderRadius.circular(4)),
+      decoration: BoxDecoration(
+        color: c,
+        borderRadius: BorderRadius.circular(4),
+      ),
     );
+
     return Column(
       children: [
         for (var i = 0; i < count; i++)
@@ -302,7 +362,11 @@ class FeedSkeleton extends StatelessWidget {
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [bar(double.infinity, 14), const SizedBox(height: 8), bar(160, 12)],
+                          children: [
+                            bar(double.infinity, 14),
+                            const SizedBox(height: 8),
+                            bar(160, 12),
+                          ],
                         ),
                       ),
                     ],
@@ -318,4 +382,320 @@ class FeedSkeleton extends StatelessWidget {
 
 /// A friendly error with a retry button.
 class ErrorView extends StatelessWidget {
-  const ErrorView({super.key, required
+  const ErrorView({
+    super.key,
+    required this.error,
+    this.onRetry,
+    this.compact = false,
+  });
+
+  final Object error;
+  final VoidCallback? onRetry;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = '$error';
+    final offline = text.contains('SocketException') ||
+        text.contains('connection') ||
+        text.contains('Failed host lookup');
+
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(compact ? 16 : 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              offline ? Symbols.wifi_off : Symbols.error,
+              size: compact ? 32 : 64,
+              color: context.yt.textSecondary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              offline ? 'No connection' : 'Something went wrong',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              offline
+                  ? 'Check your internet connection and try again.'
+                  : 'Tap to retry.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: context.yt.textSecondary),
+            ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 16),
+              OutlinedButton(
+                onPressed: onRetry,
+                style: OutlinedButton.styleFrom(
+                  shape: const StadiumBorder(),
+                  side: BorderSide(color: context.yt.divider),
+                  foregroundColor: context.yt.link,
+                ),
+                child: const Text('Retry'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class EmptyView extends StatelessWidget {
+  const EmptyView({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.message,
+    this.action,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? message;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 96,
+            color: context.yt.textSecondary,
+            weight: 200,
+          ),
+          const SizedBox(height: 20),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (message != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              message!,
+              style: TextStyle(color: context.yt.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+          ],
+          if (action != null) ...[
+            const SizedBox(height: 20),
+            action!,
+          ],
+        ],
+      ),
+    ),
+  );
+}
+
+/// Loads more when a scrollable gets near its end.
+/// The end of a sliver page: room for the floating mini player when it's showing (the shell sets it as the
+/// bottom padding), so the last item can scroll clear of it.
+class SliverBottomInset extends StatelessWidget {
+  const SliverBottomInset({super.key});
+
+  @override
+  Widget build(BuildContext context) => SliverToBoxAdapter(
+    child: SizedBox(height: MediaQuery.paddingOf(context).bottom),
+  );
+}
+
+/// Pages of rows (playlists, history, settings) stay a readable width on tablets and TVs, centred; on phones this
+/// changes nothing.
+class MaxContentWidth extends StatelessWidget {
+  const MaxContentWidth({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: maxRowContentWidth),
+      child: child,
+    ),
+  );
+}
+
+/// A radio-button row for settings and pickers. Not a `RadioListTile`: its `RadioGroup` takes the arrow keys (each
+/// press selects the next radio and wraps around), so the TV remote could never leave the list (docs/ui.md).
+class ChoiceTile extends StatelessWidget {
+  const ChoiceTile({
+    super.key,
+    required this.title,
+    this.subtitle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String title;
+  final String? subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.yt;
+
+    return Semantics(
+      inMutuallyExclusiveGroup: true,
+      checked: selected,
+      child: ListTile(
+        leading: Icon(
+          selected
+              ? Symbols.radio_button_checked
+              : Symbols.radio_button_unchecked,
+          color: selected ? c.link : c.textSecondary,
+        ),
+        title: Text(title),
+        subtitle: subtitle == null ? null : Text(subtitle!),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+/// A focus ring for the TV remote and keyboards (docs/ui.md): a rounded border drawn over [child] while it, or a
+/// widget inside it, has focus. Hidden while the screen is being touched, so phones never show it.
+class FocusHighlight extends StatefulWidget {
+  const FocusHighlight({super.key, required this.child, this.radius = 12});
+
+  final Widget child;
+  final double radius;
+
+  @override
+  State<FocusHighlight> createState() => _FocusHighlightState();
+}
+
+class _FocusHighlightState extends State<FocusHighlight> {
+  bool _focused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    FocusManager.instance.addHighlightModeListener(_modeChanged);
+  }
+
+  @override
+  void dispose() {
+    FocusManager.instance.removeHighlightModeListener(_modeChanged);
+    super.dispose();
+  }
+
+  void _modeChanged(FocusHighlightMode _) {
+    if (_focused && mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final show = _focused &&
+        FocusManager.instance.highlightMode == FocusHighlightMode.traditional;
+
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onFocusChange: (f) => setState(() => _focused = f),
+      child: CustomPaint(
+        foregroundPainter: _RingPainter(
+          show: show,
+          color: context.yt.textPrimary,
+          radius: widget.radius,
+        ),
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+/// The focus ring, drawn just outside the widget with a small gap, so it shows on any colour (a white chip too).
+class _RingPainter extends CustomPainter {
+  const _RingPainter({
+    required this.show,
+    required this.color,
+    required this.radius,
+  });
+
+  final bool show;
+  final Color color;
+  final double radius;
+
+  static const _gap = 3.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (!show) return;
+
+    final rect = (Offset.zero & size).inflate(_gap);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, Radius.circular(radius + _gap)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5
+        ..color = color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) =>
+      old.show != show || old.color != color || old.radius != radius;
+}
+
+class LoadMoreListener extends StatelessWidget {
+  const LoadMoreListener({
+    super.key,
+    required this.onLoadMore,
+    required this.child,
+    this.threshold = 1200,
+  });
+
+  final VoidCallback onLoadMore;
+  final Widget child;
+  final double threshold;
+
+  @override
+  Widget build(BuildContext context) => NotificationListener<ScrollNotification>(
+    onNotification: (n) {
+      if (n.metrics.axis == Axis.vertical &&
+          n.metrics.extentAfter < threshold) {
+        onLoadMore();
+      }
+      return false;
+    },
+    child: child,
+  );
+}
+
+void showSnack(
+  BuildContext context,
+  String message, {
+  String? action,
+  VoidCallback? onAction,
+}) {
+  final m = ScaffoldMessenger.maybeOf(context);
+  m?.hideCurrentSnackBar();
+  m?.showSnackBar(
+    SnackBar(
+      content: Text(message),
+      duration: const Duration(seconds: 3),
+      // Close after [duration] even with an action (Flutter keeps a toast with an action up until it's tapped).
+      persist: false,
+      action: action == null
+          ? null
+          : SnackBarAction(
+              label: action,
+              onPressed: onAction ?? () {},
+            ),
+    ),
+  );
+}
