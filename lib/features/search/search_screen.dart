@@ -166,7 +166,7 @@ class SearchField extends StatelessWidget {
         textInputAction: TextInputAction.search,
         style: const TextStyle(fontSize: 16),
         decoration: const InputDecoration(
-          hintText: 'Hledat na YouPipe',
+          hintText: 'Hledat na Videlon',
           isCollapsed: true,
           border: InputBorder.none,
         ),
@@ -193,7 +193,7 @@ class SearchField extends StatelessWidget {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  text.isEmpty ? 'Hledat na YouPipe' : text,
+                  text.isEmpty ? 'Hledat na Videlon' : text,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
