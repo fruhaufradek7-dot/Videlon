@@ -4,11 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
+import '../../features/sponsorblock/sponsorblock.dart';
 import '../../providers.dart';
 import '../../ui/theme/yt_theme.dart';
 import '../../ui/widgets/common.dart';
 
 /// Další sekce nastavení přidávané funkcemi aplikace.
+/// Ponecháno kvůli kompatibilitě s ostatními částmi aplikace.
 final settingsExtraSections = <Widget Function(BuildContext, WidgetRef)>[];
 
 const _regions = {
@@ -104,21 +106,20 @@ class SettingsScreen extends StatelessWidget {
               page: const UpdatesSettingsScreen(),
             ),
 
-            if (settingsExtraSections.isNotEmpty) ...[
-              const Divider(),
-              _sectionHeader(context, 'Další možnosti'),
-              for (final section in settingsExtraSections)
-                Builder(
-                  builder: (context) => Consumer(
-                    builder: (context, ref, _) => section(context, ref),
-                  ),
-                ),
-            ],
+            const Divider(),
+            _sectionHeader(context, 'Další možnosti'),
+            _category(
+              context,
+              icon: Icons.fast_forward_outlined,
+              title: 'SponsorBlock',
+              subtitle: 'Přeskakování sponzorů a dalších částí videí',
+              page: const SponsorBlockSettingsScreen(),
+            ),
 
             const Divider(),
             _sectionHeader(context, 'Aplikace'),
             ListTile(
-              leading: const Icon(Icons.help_outline, color: Colors.white),
+              leading: const Icon(Icons.help_outline),
               title: const Text('Nápověda'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _openSettingsPage(
@@ -127,10 +128,7 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
             ListTile(
-              leading: const Icon(
-                Icons.feedback_outlined,
-                color: Colors.white,
-              ),
+              leading: const Icon(Icons.feedback_outlined),
               title: const Text('Odeslat zpětnou vazbu'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _openSettingsPage(
@@ -139,10 +137,7 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
             ListTile(
-              leading: const Icon(
-                Icons.privacy_tip_outlined,
-                color: Colors.white,
-              ),
+              leading: const Icon(Icons.privacy_tip_outlined),
               title: const Text('Zásady a soukromí'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _openSettingsPage(
@@ -151,7 +146,7 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.info_outline, color: Colors.white),
+              leading: const Icon(Icons.info_outline),
               title: const Text('Informace o Videlonu'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _openSettingsPage(
@@ -474,6 +469,32 @@ class UpdatesSettingsScreen extends StatelessWidget {
                 'Možnost kontroly nových verzí připravujeme.',
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// SPONSORBLOCK
+
+class SponsorBlockSettingsScreen extends ConsumerWidget {
+  const SponsorBlockSettingsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('SponsorBlock'),
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Symbols.arrow_back),
+        ),
+      ),
+      body: MaxContentWidth(
+        child: ListView(
+          children: [
+            sponsorBlockSettings(context, ref),
           ],
         ),
       ),
