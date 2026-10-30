@@ -11,23 +11,6 @@ import '../../ui/widgets/common.dart';
 /// Další sekce nastavení přidávané funkcemi aplikace.
 final settingsExtraSections = <Widget Function(BuildContext, WidgetRef)>[];
 
-const _languages = {
-  'cs': 'Čeština',
-  'en': 'Angličtina',
-  'hi': 'Hindština',
-  'ml': 'Malajálamština',
-  'ta': 'Tamilština',
-  'es': 'Španělština',
-  'fr': 'Francouzština',
-  'de': 'Němčina',
-  'pt': 'Portugalština',
-  'it': 'Italština',
-  'ja': 'Japonština',
-  'ko': 'Korejština',
-  'ar': 'Arabština',
-  'ru': 'Ruština',
-};
-
 const _regions = {
   'US': 'Spojené státy',
   'GB': 'Spojené království',
@@ -116,16 +99,6 @@ class SettingsScreen extends ConsumerWidget {
               },
             ),
             ListTile(
-              title: const Text('Jazyk obsahu'),
-              subtitle: Text(_languages[s.hl] ?? s.hl),
-              onTap: () async {
-                final v = await pick('Jazyk obsahu', _languages, s.hl);
-                if (v != null) {
-                  await ctl.update(s.copyWith(hl: v));
-                }
-              },
-            ),
-            ListTile(
               title: const Text('Oblast obsahu'),
               subtitle: Text(_regions[s.gl] ?? s.gl),
               onTap: () async {
@@ -145,7 +118,6 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const Divider(),
 
-            // Automatické přehrávání se ovládá přímo v přehrávači.
             header('Přehrávání'),
             SwitchListTile(
               title: const Text('Pokračovat tam, kde jsem skončil'),
@@ -200,14 +172,20 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const Divider(),
 
-            header('O aplikaci'),
             ListTile(
-              title: const Text('Licence open source'),
-              onTap: () => showLicensePage(
-                context: context,
-                applicationName: 'YouPipe CZ',
-              ),
+              title: const Text('Nápověda a zásady'),
+              subtitle: const Text('Nápověda, soukromí a informace o aplikaci'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const HelpAndPoliciesScreen(),
+                  ),
+                );
+              },
             ),
+
+            const SizedBox(height: 24),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               child: Text(
@@ -226,3 +204,123 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
+class HelpAndPoliciesScreen extends StatelessWidget {
+  const HelpAndPoliciesScreen({super.key});
+
+  void _showInfo(
+    BuildContext context,
+    String title,
+    String message,
+  ) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Zavřít'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Nápověda a zásady'),
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Symbols.arrow_back),
+        ),
+      ),
+      body: MaxContentWidth(
+        child: ListView(
+          children: [
+            ListTile(
+              leading: const Icon(
+                Icons.help_outline,
+                color: Colors.white,
+              ),
+              title: const Text('Nápověda'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showInfo(
+                context,
+                'Nápověda',
+                'Vítej ve Videlonu! Návody a další informace '
+                    'o používání aplikace připravujeme.',
+              ),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.feedback_outlined,
+                color: Colors.white,
+              ),
+              title: const Text('Odeslat zpětnou vazbu'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showInfo(
+                context,
+                'Zpětná vazba',
+                'Tato funkce se právě připravuje. '
+                    'Brzy zde bude možné posílat návrhy, '
+                    'připomínky a hlásit problémy s aplikací Videlon.',
+              ),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.privacy_tip_outlined,
+                color: Colors.white,
+              ),
+              title: const Text('Zásady a soukromí'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _showInfo(
+                context,
+                'Zásady a soukromí',
+                'Informace o zásadách a ochraně soukromí '
+                    'aplikace Videlon budou doplněny.',
+              ),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.info_outline,
+                color: Colors.white,
+              ),
+              title: const Text('Informace o Videlonu'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => showDialog<void>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: const Text('Videlon'),
+                  content: const Text(
+                    'Videlon je nezávislá aplikace s otevřeným '
+                    'zdrojovým kódem. Není vytvořena společností '
+                    'YouTube ani Google a není s nimi spojena.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(dialogContext);
+                        showLicensePage(
+                          context: context,
+                          applicationName: 'Videlon',
+                        );
+                      },
+                      child: const Text('Licence open source'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text('Zavřít'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
