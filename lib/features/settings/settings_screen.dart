@@ -14,6 +14,7 @@ import '../../ui/widgets/common.dart';
 final settingsExtraSections = <Widget Function(BuildContext, WidgetRef)>[];
 
 const _regions = {
+  'CZ': 'Česká republika',
   'US': 'Spojené státy',
   'GB': 'Spojené království',
   'IE': 'Irsko',
