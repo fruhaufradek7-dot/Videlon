@@ -17,7 +17,6 @@ import '../../ui/widgets/video_menu.dart';
 import '../../ui/widgets/video_tiles.dart';
 import '../playlist/playlist_screen.dart';
 
-/// Položky přidané pozdějšími funkcemi (stahování, účet).
 typedef YouEntry = ({
   IconData icon,
   String label,
@@ -26,7 +25,6 @@ typedef YouEntry = ({
 
 final youExtraEntries = <YouEntry>[];
 
-/// Widget zobrazený nahoře na stránce Vy (záhlaví účtu po přihlášení).
 Widget Function(BuildContext, WidgetRef)? youHeaderBuilder;
 
 class YouScreen extends ConsumerWidget {
@@ -64,74 +62,70 @@ class YouScreen extends ConsumerWidget {
     }
 
     Widget sectionTitle(String title, VoidCallback? onViewAll) => Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 12, 12),
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
           child: Row(
             children: [
               Text(title, style: YtText.sectionTitle),
               const Spacer(),
               if (onViewAll != null)
-                OutlinedButton(
+                TextButton(
                   onPressed: onViewAll,
-                  style: OutlinedButton.styleFrom(
-                    shape: const StadiumBorder(),
-                    side: BorderSide(color: c.divider),
-                    foregroundColor: c.textPrimary,
-                    visualDensity: VisualDensity.compact,
-                  ),
                   child: const Text('Zobrazit vše'),
                 ),
             ],
           ),
         );
 
-    Widget libraryTile({
+    Widget libraryRow({
       required IconData icon,
       required String title,
       required String subtitle,
       required VoidCallback onTap,
     }) {
-      return Material(
-        color: c.raised,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: c.chip,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(icon, color: c.textPrimary, size: 25),
+      return InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 42,
+                height: 42,
+                child: Icon(
+                  icon,
+                  size: 25,
+                  color: c.textSecondary,
                 ),
-                const Spacer(),
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: c.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: c.textSecondary,
-                  ),
-                ),
-              ],
-            ),
+              ),
+              Icon(
+                Symbols.chevron_right,
+                size: 21,
+                color: c.textSecondary,
+              ),
+            ],
           ),
         ),
       );
@@ -148,94 +142,77 @@ class YouScreen extends ConsumerWidget {
               ),
             ),
 
-            // Profil / přihlášení
+            // Profil
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: c.raised,
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(color: c.divider),
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  child: youHeaderBuilder?.call(context, ref) ??
-                      Row(
-                        children: [
-                          Container(
-                            width: 58,
-                            height: 58,
-                            decoration: BoxDecoration(
-                              color: c.chip,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Symbols.person,
-                              size: 34,
-                              color: c.textSecondary,
-                            ),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                child: youHeaderBuilder?.call(context, ref) ??
+                    Row(
+                      children: [
+                        Container(
+                          width: 54,
+                          height: 54,
+                          decoration: BoxDecoration(
+                            color: c.chip,
+                            shape: BoxShape.circle,
                           ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Vítej ve Videlonu',
-                                  style: TextStyle(
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  'Tvoje videa a knihovna na jednom místě',
-                                  style: TextStyle(
-                                    color: c.textSecondary,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          child: Icon(
+                            Symbols.person,
+                            size: 32,
+                            color: c.textSecondary,
                           ),
-                        ],
-                      ),
-                ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Vítej ve Videlonu',
+                                style: TextStyle(
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                'Tvoje videa a knihovna na jednom místě',
+                                style: TextStyle(
+                                  color: c.textSecondary,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
               ),
             ),
 
             // Knihovna
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
-                child: Text(
-                  'Tvoje knihovna',
-                  style: YtText.sectionTitle,
-                ),
-              ),
+              child: sectionTitle('Tvoje knihovna', null),
             ),
 
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverGrid.count(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.35,
+            SliverToBoxAdapter(
+              child: Column(
                 children: [
-                  libraryTile(
+                  libraryRow(
                     icon: Symbols.history,
                     title: 'Historie',
                     subtitle: '${history.length} sledovaných videí',
                     onTap: () => openHistory(context, ref),
                   ),
-                  libraryTile(
+                  Divider(height: 1, indent: 70, color: c.divider),
+                  libraryRow(
                     icon: Symbols.playlist_play,
                     title: 'Playlisty',
                     subtitle: 'Tvoje seznamy videí',
                     onTap: openPlaylistSection,
                   ),
-                  libraryTile(
+                  Divider(height: 1, indent: 70, color: c.divider),
+                  libraryRow(
                     icon: Symbols.download,
                     title: 'Stažená videa',
                     subtitle: downloadEntry == null
@@ -253,7 +230,8 @@ class YouScreen extends ConsumerWidget {
                       }
                     },
                   ),
-                  libraryTile(
+                  Divider(height: 1, indent: 70, color: c.divider),
+                  libraryRow(
                     icon: Symbols.subscriptions,
                     title: 'Odběry',
                     subtitle: 'Odebírané kanály',
@@ -268,12 +246,13 @@ class YouScreen extends ConsumerWidget {
               key: playlistSectionKey,
               child: sectionTitle('Playlisty', null),
             ),
+
             SliverToBoxAdapter(
               child: SizedBox(
                 height: 160 * 9 / 16 + 64,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: [
                     _PlaylistCard(
                       title: 'Oblíbená videa',
@@ -332,12 +311,15 @@ class YouScreen extends ConsumerWidget {
                     foregroundColor: c.textPrimary,
                     side: BorderSide(color: c.divider),
                     padding: const EdgeInsets.symmetric(vertical: 13),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
             ),
 
-            // Další funkce přidané rozšířeními
+            // Další funkce
             if (youExtraEntries.any(
               (entry) => entry.label != downloadEntry?.label,
             ))
@@ -361,52 +343,50 @@ class YouScreen extends ConsumerWidget {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 24, 16, 20),
-                child: Material(
-                  color: c.raised,
-                  borderRadius: BorderRadius.circular(18),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(18),
-                    onTap: () => openSettings(context, ref),
-                    child: Padding(
-                      padding: const EdgeInsets.all(17),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: c.chip,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Icon(
-                              Symbols.settings,
-                              color: c.textPrimary,
-                              size: 25,
-                            ),
+                child: InkWell(
+                  onTap: () => openSettings(context, ref),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 13,
+                    ),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 42,
+                          height: 42,
+                          child: Icon(
+                            Symbols.settings,
+                            size: 25,
+                            color: c.textSecondary,
                           ),
-                          const SizedBox(width: 14),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Nastavení',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 15,
-                                  ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Nastavení',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
                                 ),
-                                SizedBox(height: 3),
-                                Text(
-                                  'Přizpůsob si Videlon podle sebe',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                              ],
-                            ),
+                              ),
+                              SizedBox(height: 3),
+                              Text(
+                                'Přizpůsob si Videlon podle sebe',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ],
                           ),
-                          const Icon(Symbols.chevron_right),
-                        ],
-                      ),
+                        ),
+                        Icon(
+                          Symbols.chevron_right,
+                          size: 21,
+                          color: c.textSecondary,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -441,13 +421,20 @@ class _PlaylistCard extends StatelessWidget {
         padding: const EdgeInsets.only(right: 12),
         child: InkWell(
           onTap: onTap,
+          borderRadius: BorderRadius.circular(6),
           child: SizedBox(
             width: 160,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
-                PlaylistThumb(thumbnail: thumbnail, icon: icon),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: PlaylistThumb(
+                    thumbnail: thumbnail,
+                    icon: icon,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Text(
                   title,
