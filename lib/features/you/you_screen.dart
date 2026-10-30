@@ -44,10 +44,13 @@ class YouScreen extends ConsumerWidget {
 
     final playlistSectionKey = GlobalKey();
 
-    final downloadEntry = youExtraEntries.cast<YouEntry?>().firstWhere(
-      (entry) => entry!.label.toLowerCase().contains('stažen'),
-      orElse: () => null,
-    );
+    YouEntry? downloadEntry;
+    for (final entry in youExtraEntries) {
+      if (entry.label.toLowerCase().contains('stažen')) {
+        downloadEntry = entry;
+        break;
+      }
+    }
 
     void openPlaylistSection() {
       final targetContext = playlistSectionKey.currentContext;
@@ -61,25 +64,25 @@ class YouScreen extends ConsumerWidget {
     }
 
     Widget sectionTitle(String title, VoidCallback? onViewAll) => Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 12, 12),
-      child: Row(
-        children: [
-          Text(title, style: YtText.sectionTitle),
-          const Spacer(),
-          if (onViewAll != null)
-            OutlinedButton(
-              onPressed: onViewAll,
-              style: OutlinedButton.styleFrom(
-                shape: const StadiumBorder(),
-                side: BorderSide(color: c.divider),
-                foregroundColor: c.textPrimary,
-                visualDensity: VisualDensity.compact,
-              ),
-              child: const Text('Zobrazit vše'),
-            ),
-        ],
-      ),
-    );
+          padding: const EdgeInsets.fromLTRB(16, 24, 12, 12),
+          child: Row(
+            children: [
+              Text(title, style: YtText.sectionTitle),
+              const Spacer(),
+              if (onViewAll != null)
+                OutlinedButton(
+                  onPressed: onViewAll,
+                  style: OutlinedButton.styleFrom(
+                    shape: const StadiumBorder(),
+                    side: BorderSide(color: c.divider),
+                    foregroundColor: c.textPrimary,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  child: const Text('Zobrazit vše'),
+                ),
+            ],
+          ),
+        );
 
     Widget libraryTile({
       required IconData icon,
@@ -88,7 +91,7 @@ class YouScreen extends ConsumerWidget {
       required VoidCallback onTap,
     }) {
       return Material(
-        color: c.card,
+        color: c.raised,
         borderRadius: BorderRadius.circular(18),
         child: InkWell(
           onTap: onTap,
@@ -143,13 +146,6 @@ class YouScreen extends ConsumerWidget {
                 'Vy',
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
-              actions: [
-                IconButton(
-                  tooltip: 'Nastavení',
-                  icon: const Icon(Symbols.settings),
-                  onPressed: () => openSettings(context, ref),
-                ),
-              ],
             ),
 
             // Profil / přihlášení
@@ -158,7 +154,7 @@ class YouScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: c.card,
+                    color: c.raised,
                     borderRadius: BorderRadius.circular(22),
                     border: Border.all(color: c.divider),
                   ),
@@ -246,8 +242,9 @@ class YouScreen extends ConsumerWidget {
                         ? 'Offline obsah'
                         : 'Stažený obsah',
                     onTap: () {
-                      if (downloadEntry != null) {
-                        downloadEntry.onTap(context, ref);
+                      final entry = downloadEntry;
+                      if (entry != null) {
+                        entry.onTap(context, ref);
                       } else {
                         showSnack(
                           context,
@@ -269,10 +266,7 @@ class YouScreen extends ConsumerWidget {
             // Playlisty
             SliverToBoxAdapter(
               key: playlistSectionKey,
-              child: sectionTitle(
-                'Playlisty',
-                null,
-              ),
+              child: sectionTitle('Playlisty', null),
             ),
             SliverToBoxAdapter(
               child: SizedBox(
@@ -368,7 +362,7 @@ class YouScreen extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 24, 16, 20),
                 child: Material(
-                  color: c.card,
+                  color: c.raised,
                   borderRadius: BorderRadius.circular(18),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(18),
