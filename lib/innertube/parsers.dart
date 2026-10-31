@@ -246,8 +246,8 @@ YtItem? _video(Json v) {
     ),
     thumbnail: _bestImage(v['thumbnail']) ?? 'https://i.ytimg.com/vi/$id/hqdefault.jpg',
     durationText: length,
-    viewsText: views ?? info.firstOrNull,
-    publishedText: textOf(v['publishedTimeText']) ?? (info.length > 1 ? info.last : null),
+    viewsText: localizeViewsText(views ?? info.firstOrNull),
+    publishedText: _czechAge(textOf(v['publishedTimeText']) ?? (info.length > 1 ? info.last : null)),
     isLive: live,
   );
 }
@@ -307,32 +307,63 @@ YtItem? _lockup(Json v) {
     channelAvatar: avatar,
     thumbnail: _bestImage(nav(image, ['image'])),
     durationText: duration,
-    viewsText: views,
-    publishedText: age,
+    viewsText: localizeViewsText(views),
+    publishedText: _czechAge(age),
     isLive: duration == null && badges.any((b) => b.toUpperCase() == 'LIVE'),
   );
 }
 
-final _viewsPattern = RegExp(r'\b(views?|watching|No views)\b', caseSensitive: false);
+String? _czechAge(String? text) => text == null ? null : longAge(text);\n\nfinal _viewsPattern = RegExp(r'\b(views?|watching|No views)\b', caseSensitive: false);
 
-/// YouTube's short ages ("3mo ago", "1y ago", "5d ago") in the long form the rest of the app uses ("3 months ago").
-String longAge(String text) => text.replaceAllMapped(_shortAge, (m) {
-  final n = int.parse(m[1]!);
-  final unit = _shortUnits[m[2]!]!;
-  return '$n $unit${n == 1 ? '' : 's'} ago';
-});
+/// Converts YouTube's English relative dates into Czech.
+String longAge(String text) {
+  var result = text.replaceAll(RegExp(r'^(Streamed|Premiered|Published|Scheduled)\\s+', caseSensitive: false), '');
+  final match = RegExp(r'^(\\d+)\\s*(years?|yrs?|months?|mos?|weeks?|wks?|days?|hours?|hrs?|minutes?|mins?|seconds?|secs?|y|mo|w|d|h|min|m|s)\\s+ago$', caseSensitive: false).firstMatch(result);
+  if (match == null) {
+    if (result.toLowerCase() == 'just now') return 'Právě teď';
+    return result;
+  }
+  final n = int.parse(match[1]!);
+  final raw = match[2]!.toLowerCase();
+  final unit = raw.startsWith('y') ? 'rok'
+      : raw.startsWith('mo') ? 'měsíc'
+      : raw.startsWith('w') ? 'týden'
+      : raw.startsWith('d') ? 'den'
+      : raw.startsWith('h') ? 'hodin'
+      : raw.startsWith('m') ? 'minut' : 'sekund';
+  if (unit == 'rok') return 'před $n ${n == 1 ? 'rokem' : 'lety'}';
+  if (unit == 'měsíc') return 'před $n ${n == 1 ? 'měsícem' : 'měsíci'}';
+  if (unit == 'týden') return 'před $n ${n == 1 ? 'týdnem' : 'týdny'}';
+  if (unit == 'den') return 'před $n ${n == 1 ? 'dnem' : 'dny'}';
+  if (unit == 'hodin') return 'před $n hodinami';
+  if (unit == 'minut') return 'před $n minutami';
+  return 'před $n sekundami';
+}
 
-final _shortAge = RegExp(r'\b(\d+)\s?(mo|y|w|d|h|min|m|s) ago\b');
-const _shortUnits = {
-  'y': 'year',
-  'mo': 'month',
-  'w': 'week',
-  'd': 'day',
-  'h': 'hour',
-  'min': 'minute',
-  'm': 'minute',
-  's': 'second',
-};
+String localizeViewsText(String? text) {
+  if (text == null || text.trim().isEmpty) return '';
+  final value = text.trim();
+  if (RegExp(r'^no views$', caseSensitive: false).hasMatch(value)) return 'Žádná zhlédnutí';
+  final watching = RegExp(r'^([\\d.,]+)\\s+watching$', caseSensitive: false).firstMatch(value);
+  if (watching != null) return 'Právě sleduje ${watching[1]}';
+  final match = RegExp(r'^([\\d.,]+)\\s*([KMB])?\\s*views?$', caseSensitive: false).firstMatch(value);
+  if (match == null) return value;
+  final number = double.tryParse(match[1]!.replaceAll(',', '.'));
+  if (number == null) return value;
+  final multiplier = switch (match[2]?.toUpperCase()) {
+    'K' => 1000,
+    'M' => 1000000,
+    'B' => 1000000000,
+    _ => 1,
+  };
+  final count = (number * multiplier).round();
+  if (count < 1000) return count == 1 ? '1 zhlédnutí' : '$count zhlédnutí';
+  final scale = count >= 1000000000 ? 1000000000 : count >= 1000000 ? 1000000 : 1000;
+  final unit = count >= 1000000000 ? 'mld.' : count >= 1000000 ? 'mil.' : 'tis.';
+  final amount = count / scale;
+  final shown = amount >= 10 ? amount.floor().toString() : amount.toStringAsFixed(1).replaceAll('.0', '').replaceAll('.', ',');
+  return '$shown $unit zhlédnutí';
+}
 
 final _playlistLabel = RegExp(r'^(Playlist|Podcast|Mix|Course|View full playlist|Updated .*)$', caseSensitive: false);
 final _bareCount = RegExp(r'^[\d.,]+[KMB]?$');
@@ -373,7 +404,7 @@ YtItem? _shortsLockup(Json v) {
   return VideoItem(
     id: id,
     title: nav<String>(v, ['overlayMetadata', 'primaryText', 'content']) ?? '',
-    viewsText: nav<String>(v, ['overlayMetadata', 'secondaryText', 'content']),
+    viewsText: localizeViewsText(nav<String>(v, ['overlayMetadata', 'secondaryText', 'content'])),
     thumbnail: _bestImage(nav(v, ['thumbnail'])) ?? _bestImage(nav(reel, ['thumbnail'])),
     isShort: true,
   );
@@ -385,7 +416,7 @@ YtItem? _reelItem(Json v) {
   return VideoItem(
     id: id,
     title: textOf(v['headline']) ?? '',
-    viewsText: textOf(v['viewCountText']),
+    viewsText: localizeViewsText(textOf(v['viewCountText'])),
     thumbnail: _bestImage(v['thumbnail']),
     isShort: true,
   );
