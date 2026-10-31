@@ -313,12 +313,14 @@ YtItem? _lockup(Json v) {
   );
 }
 
-String? _czechAge(String? text) => text == null ? null : longAge(text);\n\nfinal _viewsPattern = RegExp(r'\b(views?|watching|No views)\b', caseSensitive: false);
+String? _czechAge(String? text) => text == null ? null : longAge(text);
+
+final _viewsPattern = RegExp(r'\b(views?|watching|No views)\b', caseSensitive: false);
 
 /// Converts YouTube's English relative dates into Czech.
 String longAge(String text) {
-  var result = text.replaceAll(RegExp(r'^(Streamed|Premiered|Published|Scheduled)\\s+', caseSensitive: false), '');
-  final match = RegExp(r'^(\\d+)\\s*(years?|yrs?|months?|mos?|weeks?|wks?|days?|hours?|hrs?|minutes?|mins?|seconds?|secs?|y|mo|w|d|h|min|m|s)\\s+ago$', caseSensitive: false).firstMatch(result);
+  var result = text.replaceAll(RegExp(r'^(Streamed|Premiered|Published|Scheduled)\s+', caseSensitive: false), '');
+  final match = RegExp(r'^(\d+)\s*(years?|yrs?|months?|mos?|weeks?|wks?|days?|hours?|hrs?|minutes?|mins?|seconds?|secs?|y|mo|w|d|h|min|m|s)\s+ago$', caseSensitive: false).firstMatch(result);
   if (match == null) {
     if (result.toLowerCase() == 'just now') return 'Právě teď';
     return result;
@@ -344,9 +346,9 @@ String localizeViewsText(String? text) {
   if (text == null || text.trim().isEmpty) return '';
   final value = text.trim();
   if (RegExp(r'^no views$', caseSensitive: false).hasMatch(value)) return 'Žádná zhlédnutí';
-  final watching = RegExp(r'^([\\d.,]+)\\s+watching$', caseSensitive: false).firstMatch(value);
+  final watching = RegExp(r'^([\d.,]+)\s+watching$', caseSensitive: false).firstMatch(value);
   if (watching != null) return 'Právě sleduje ${watching[1]}';
-  final match = RegExp(r'^([\\d.,]+)\\s*([KMB])?\\s*views?$', caseSensitive: false).firstMatch(value);
+  final match = RegExp(r'^([\d.,]+)\s*([KMB])?\s*views?$', caseSensitive: false).firstMatch(value);
   if (match == null) return value;
   final number = double.tryParse(match[1]!.replaceAll(',', '.'));
   if (number == null) return value;
