@@ -40,24 +40,11 @@ class YouScreen extends ConsumerWidget {
         ref.watch(savedPlaylistsProvider).value ?? const <PlaylistItem>[];
     final c = context.yt;
 
-    final playlistSectionKey = GlobalKey();
-
     YouEntry? downloadEntry;
     for (final entry in youExtraEntries) {
       if (entry.label.toLowerCase().contains('stažen')) {
         downloadEntry = entry;
         break;
-      }
-    }
-
-    void openPlaylistSection() {
-      final targetContext = playlistSectionKey.currentContext;
-      if (targetContext != null) {
-        Scrollable.ensureVisible(
-          targetContext,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeInOut,
-        );
       }
     }
 
@@ -209,7 +196,11 @@ class YouScreen extends ConsumerWidget {
                     icon: Symbols.playlist_play,
                     title: 'Playlisty',
                     subtitle: 'Tvoje seznamy videí',
-                    onTap: openPlaylistSection,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const PlaylistLibraryScreen(),
+                      ),
+                    ),
                   ),
                   Divider(height: 1, indent: 70, color: c.divider),
                   libraryRow(
@@ -243,7 +234,6 @@ class YouScreen extends ConsumerWidget {
 
             // Playlisty
             SliverToBoxAdapter(
-              key: playlistSectionKey,
               child: sectionTitle('Playlisty', null),
             ),
 
