@@ -34,10 +34,17 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-     
-
       - name: Build APK
-        run: flutter build apk --debug --verbose
+        run: |
+          set -o pipefail
+          flutter build apk --debug --verbose 2>&1 | tee build-log.txt
+
+      - name: Show build errors
+        if: failure()
+        run: |
+          echo "===== POSSIBLE ERRORS ====="
+          grep -in -C 5 -E "error:|exception|failed|FAILURE:|What went wrong" build-log.txt | tail -n 150 || true
+          echo "===== END OF ERROR EXTRACT ====="
 
       - name: Upload APK
         if: success()
