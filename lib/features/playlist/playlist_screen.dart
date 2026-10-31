@@ -1,4 +1,3 @@
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -509,8 +508,10 @@ class PlaylistLibraryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = context.yt;
     final liked = ref.watch(likedVideosProvider).value ?? const <VideoItem>[];
-    final playlists =
-        ref.watch(localPlaylistsProvider).value ?? const <LocalPlaylistSummary>[];
+
+    // Typ seznamu se odvodí přímo z localPlaylistsProvider.
+    final playlists = ref.watch(localPlaylistsProvider).value ?? [];
+
     final saved =
         ref.watch(savedPlaylistsProvider).value ?? const <PlaylistItem>[];
 
