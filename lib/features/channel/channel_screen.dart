@@ -35,6 +35,31 @@ String _translatedTab(String title) => switch (title) {
       _ => title,
     };
 
+String _translatedSort(String label) => switch (label.toLowerCase()) {
+      'latest' => 'Nejnovější',
+      'popular' => 'Populární',
+      'oldest' => 'Nejstarší',
+      _ => label,
+    };
+
+String _translatedMetadata(String value) {
+  final lower = value.toLowerCase();
+  if (lower.endsWith(' subscribers')) {
+    return '${value.substring(0, value.length - ' subscribers'.length)} odběratelů';
+  }
+  if (lower.endsWith(' videos')) {
+    final count = value.substring(0, value.length - ' videos'.length);
+    final number = int.tryParse(count.replaceAll(',', ''));
+    final noun = number == 1
+        ? 'video'
+        : number != null && number >= 2 && number <= 4
+            ? 'videa'
+            : 'videí';
+    return '$count $noun';
+  }
+  return value;
+}
+
 class ChannelScreen extends ConsumerWidget {
   const ChannelScreen({super.key, required this.channelId});
 
@@ -163,7 +188,7 @@ class _Header extends ConsumerWidget {
                         ),
                       ),
                     Text(
-                      page.metadata.join(' · '),
+                      page.metadata.map(_translatedMetadata).join(' · '),
                       style: TextStyle(
                         fontSize: 12,
                         color: c.textSecondary,
@@ -384,7 +409,7 @@ class _TabContentState extends ConsumerState<_TabContent>
                 children: [
                   for (final c in chips)
                     YtChip(
-                      label: c.label,
+                      label: _translatedSort(c.label),
                       selected: _sortLabel.isEmpty
                           ? c.selected
                           : c.label == _sortLabel,
