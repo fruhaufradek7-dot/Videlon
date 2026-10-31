@@ -34,8 +34,11 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Generate Videlon app icons and splash screen
-        run: dart run flutter_native_splash:create
+      - name: Generate Videlon V splash images
+        run: |
+          python -m pip install cairosvg
+          python scripts/generate_splash.py
+          dart run flutter_native_splash:create
 
       - name: Build APK
         run: |
