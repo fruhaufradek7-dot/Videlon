@@ -1,3 +1,4 @@
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,11 +13,113 @@ import '../../ui/widgets/common.dart';
 import '../../ui/widgets/top_bar.dart';
 import '../../ui/widgets/video_tiles.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
+  static const _refreshInterval = Duration(minutes: 30);
+  static const _topTolerance = 24.0;
+
+  final ScrollController _scrollController = ScrollController();
+  Timer? _refreshTimer;
+  bool _refreshPending = false;
+  bool _refreshing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _scrollController.addListener(_onScroll);
+    _scheduleRefresh();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _scheduleRefresh();
+    } else {
+      _refreshTimer?.cancel();
+      _refreshTimer = null;
+    }
+  }
+
+  void _scheduleRefresh() {
+    _refreshTimer?.cancel();
+    if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) return;
+
+    _refreshTimer = Timer(_refreshInterval, () {
+      _refreshPending = true;
+      _refreshIfSafe();
+    });
+  }
+
+  void _onScroll() {
+    if (_refreshPending && _isAtTop) {
+      _refreshIfSafe();
+    }
+  }
+
+  bool get _isAtTop {
+    if (!_scrollController.hasClients) return true;
+    return _scrollController.position.pixels <=
+        _scrollController.position.minScrollExtent + _topTolerance;
+  }
+
+  Future<void> _refreshIfSafe() async {
+    if (!_refreshPending ||
+        _refreshing ||
+        !_isAtTop ||
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed ||
+        ref.read(currentTabProvider) != 0) {
+      return;
+    }
+
+    _refreshPending = false;
+    _refreshing = true;
+    try {
+      ref.invalidate(homeShortsProvider);
+      ref.invalidate(homeProvider);
+      await ref.read(homeProvider.future);
+      await ref.read(homeShortsProvider.future);
+    } catch (_) {
+      // Keep the app usable if the network is unavailable; the next interval retries.
+    } finally {
+      _refreshing = false;
+      _scheduleRefresh();
+    }
+  }
+
+  Future<void> _manualRefresh() async {
+    _refreshPending = false;
+    _refreshTimer?.cancel();
+    _refreshing = true;
+    try {
+      ref.invalidate(homeShortsProvider);
+      ref.invalidate(homeProvider);
+      await ref.read(homeProvider.future);
+      await ref.read(homeShortsProvider.future);
+    } finally {
+      _refreshing = false;
+      _scheduleRefresh();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final home = ref.watch(homeProvider);
     final chip = ref.watch(homeChipProvider);
     final shorts = ref.watch(homeShortsProvider).value ?? const <VideoItem>[];
@@ -34,11 +137,7 @@ class HomeScreen extends ConsumerWidget {
       body: StatusBarScrim(
         child: RefreshIndicator(
           color: context.yt.textPrimary,
-          onRefresh: () async {
-            ref.invalidate(homeShortsProvider);
-            ref.invalidate(homeProvider);
-            await ref.read(homeProvider.future);
-          },
+          onRefresh: _manualRefresh,
           child: LoadMoreListener(
             onLoadMore: () => ref.read(homeProvider.notifier).loadMore(),
             child: Listener(
@@ -52,6 +151,7 @@ class HomeScreen extends ConsumerWidget {
                   return KeyEventResult.ignored;
                 },
                 child: CustomScrollView(
+                  controller: _scrollController,
                   slivers: [
                     YtTopBar(
                       bottom: PreferredSize(
