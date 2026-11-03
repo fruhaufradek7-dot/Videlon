@@ -58,6 +58,7 @@ class AppSettings {
     this.saveSearchHistory = true,
     this.resume = true,
     this.pip = true,
+    this.hideShorts = false,
   });
 
   final ThemeMode themeMode;
@@ -76,6 +77,9 @@ class AppSettings {
   /// Picture-in-picture when leaving the app during playback.
   final bool pip;
 
+  /// Hide Shorts from feeds and navigation.
+  final bool hideShorts;
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     String? hl,
@@ -86,6 +90,7 @@ class AppSettings {
     bool? saveSearchHistory,
     bool? resume,
     bool? pip,
+    bool? hideShorts,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     hl: hl ?? this.hl,
@@ -96,6 +101,7 @@ class AppSettings {
     saveSearchHistory: saveSearchHistory ?? this.saveSearchHistory,
     resume: resume ?? this.resume,
     pip: pip ?? this.pip,
+    hideShorts: hideShorts ?? this.hideShorts,
   );
 }
 
@@ -117,6 +123,7 @@ class SettingsController extends Notifier<AppSettings> {
       saveSearchHistory: p.getBool('saveSearchHistory') ?? true,
       resume: p.getBool('resume') ?? true,
       pip: p.getBool('pip') ?? true,
+      hideShorts: p.getBool('hideShorts') ?? false,
     );
     _apply(s);
     return s;
@@ -145,6 +152,7 @@ class SettingsController extends Notifier<AppSettings> {
     await _prefs.setBool('saveSearchHistory', s.saveSearchHistory);
     await _prefs.setBool('resume', s.resume);
     await _prefs.setBool('pip', s.pip);
+    await _prefs.setBool('hideShorts', s.hideShorts);
     if (regionChanged) ref.invalidate(homeProvider);
   }
 }
