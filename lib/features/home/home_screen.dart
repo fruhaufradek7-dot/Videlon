@@ -122,14 +122,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   Widget build(BuildContext context) {
     final home = ref.watch(homeProvider);
     final chip = ref.watch(homeChipProvider);
-    final shorts = ref.watch(homeShortsProvider).value ?? const <VideoItem>[];
+    final hideShorts = ref.watch(settingsProvider.select((s) => s.hideShorts));
+    final shorts = hideShorts
+        ? const <VideoItem>[]
+        : ref.watch(homeShortsProvider).value ?? const <VideoItem>[];
     final hasHistory = (ref.watch(historyProvider).value ?? const []).isNotEmpty;
     final hasSubs = (ref.watch(subscriptionsProvider).value ?? const []).isNotEmpty;
     final chips = [
       for (final c in HomeChip.defaults)
         if (c.kind != HomeChipKind.subscriptions || hasSubs) c,
     ];
-    final items = home.value?.items ?? const <VideoItem>[];
+    final items = (home.value?.items ?? const <VideoItem>[])
+        .where((v) => !hideShorts || !v.isShort)
+        .toList();
     // YouTube zobrazuje sekci krátkých videí za několika prvními videi.
     const shelfAt = 2;
 

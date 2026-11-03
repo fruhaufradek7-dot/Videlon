@@ -43,17 +43,24 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(settingsProvider.select((s) => s.hideShorts), (_, hideShorts) {
+      if (hideShorts && _filter == _Filter.shorts) {
+        setState(() => _filter = _Filter.all);
+      }
+    });
+    final hideShorts = ref.watch(settingsProvider.select((s) => s.hideShorts));
     final subs =
         ref.watch(subscriptionsProvider).value ?? const <ChannelItem>[];
     final feed = ref.watch(subscriptionFeedProvider);
     final progress =
         ref.watch(watchProgressProvider).value ?? const <String, double>{};
-    final all = feed.value ?? const <FeedVideo>[];
+    final sourceAll = feed.value ?? const <FeedVideo>[];
+    final all = sourceAll.where((f) => !hideShorts || !f.video.isShort).toList();
     final now = DateTime.now();
 
     final filtered = [
       for (final f in all)
-        if (switch (_filter) {
+        if (switch (hideShorts && _filter == _Filter.shorts ? _Filter.all : _filter) {
           _Filter.all => true,
           _Filter.today => now.difference(f.publishedAt).inHours < 24,
           _Filter.videos => !f.video.isShort,
@@ -67,9 +74,9 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
     ];
 
     final videos = filtered
-        .where((v) => !v.isShort || _filter == _Filter.shorts)
+        .where((v) => !v.isShort || (!hideShorts && _filter == _Filter.shorts))
         .toList();
-    final shorts = _filter == _Filter.all
+    final shorts = _filter == _Filter.all && !hideShorts
         ? filtered.where((v) => v.isShort).take(12).toList()
         : const <VideoItem>[];
 
@@ -104,22 +111,23 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                   child: ChipBar(
                     children: [
                       for (final f in _Filter.values)
-                        YtChip(
-                          label: _labels[f]!,
-                          selected: f == _filter,
+                        if (!hideShorts || f != _Filter.shorts)
+                          YtChip(
+                            label: _labels[f]!,
+                            selected: f == (hideShorts && _filter == _Filter.shorts ? _Filter.all : _filter),
                           onTap: () => setState(() => _filter = f),
                         ),
                     ],
                   ),
                 ),
-                if (feed.isLoading && all.isEmpty)
+                if (feed.isLoading && sourceAll.isEmpty)
                   const SliverToBoxAdapter(child: FeedSkeleton())
                 else if (filtered.isEmpty)
                   SliverFillRemaining(
                     hasScrollBody: false,
                     child: EmptyView(
                       icon: Symbols.video_library,
-                      title: all.isEmpty
+                      title: sourceAll.isEmpty
                           ? 'Načítání vašich odběrů…'
                           : 'Žádná videa',
                       message: all.isEmpty
@@ -127,7 +135,7 @@ class _SubscriptionsScreenState extends ConsumerState<SubscriptionsScreen> {
                           : 'Zkuste jiný filtr.',
                     ),
                   )
-                else if (_filter == _Filter.shorts)
+                else if (!hideShorts && _filter == _Filter.shorts)
                   SliverPadding(
                     padding: const EdgeInsets.all(8),
                     sliver: SliverGrid.builder(

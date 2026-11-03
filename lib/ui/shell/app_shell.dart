@@ -165,8 +165,15 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
     // Otevřená stránka videa překrývá navigaci.
     final coveredByPanel = playing != null && panelExpanded;
     final tab = widget.navigationShell.currentIndex;
+    final hideShorts = ref.watch(settingsProvider.select((s) => s.hideShorts));
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) ref.read(currentTabProvider.notifier).set(tab);
+      if (!mounted) return;
+      if (hideShorts && tab == 1) {
+        widget.navigationShell.goBranch(0);
+        ref.read(currentTabProvider.notifier).set(0);
+      } else {
+        ref.read(currentTabProvider.notifier).set(tab);
+      }
     });
 
     final media = MediaQuery.of(context);
@@ -292,6 +299,7 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
                                     child: _SideNav(
                                       key: _rail,
                                       index: widget.navigationShell.currentIndex,
+                                      hideShorts: hideShorts,
                                       onTap: _openTab,
                                     ),
                                   ),
@@ -302,7 +310,11 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
                                   right: 0,
                                   bottom: -navHeight * t,
                                   height: navHeight,
-                                  child: _BottomNav(index: widget.navigationShell.currentIndex, onTap: _openTab),
+                                  child: _BottomNav(
+                                    index: widget.navigationShell.currentIndex,
+                                    hideShorts: hideShorts,
+                                    onTap: _openTab,
+                                  ),
                                 ),
                             ],
                           );
@@ -327,6 +339,7 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
   }
 
   void _openTab(int i) {
+    if (i == 1 && ref.read(settingsProvider).hideShorts) return;
     ref.read(playerPanelProvider.notifier).collapse();
     widget.navigationShell.goBranch(i, initialLocation: i == widget.navigationShell.currentIndex);
   }
@@ -735,9 +748,10 @@ class _NavItem extends ConsumerWidget {
 }
 
 class _BottomNav extends StatelessWidget {
-  const _BottomNav({required this.index, required this.onTap});
+  const _BottomNav({required this.index, required this.hideShorts, required this.onTap});
 
   final int index;
+  final bool hideShorts;
   final ValueChanged<int> onTap;
 
   @override
@@ -754,9 +768,10 @@ class _BottomNav extends StatelessWidget {
           child: Row(
             children: [
               for (var i = 0; i < _navLabels.length; i++)
-                Expanded(
-                  child: _NavItem(i: i, selected: i == index, onTap: () => onTap(i)),
-                ),
+                if (!hideShorts || i != 1)
+                  Expanded(
+                    child: _NavItem(i: i, selected: i == index, onTap: () => onTap(i)),
+                  ),
             ],
           ),
         ),
@@ -767,9 +782,10 @@ class _BottomNav extends StatelessWidget {
 
 /// Postranní navigace pro široké obrazovky, například tablety a televizory.
 class _SideNav extends StatefulWidget {
-  const _SideNav({super.key, required this.index, required this.onTap});
+  const _SideNav({super.key, required this.index, required this.hideShorts, required this.onTap});
 
   final int index;
+  final bool hideShorts;
   final ValueChanged<int> onTap;
 
   @override
@@ -800,7 +816,7 @@ class _SideNavState extends State<_SideNav> {
   }
 
   /// Přesune fokus na právě vybranou položku.
-  void focusSelected() => _nodes[widget.index].requestFocus();
+  void focusSelected() => _nodes[widget.hideShorts && widget.index == 1 ? 0 : widget.index].requestFocus();
 
   /// Na televizoru se fokus vrátí na vybranou položku, pokud není aktivní jiný prvek.
   void claimFocus() {
@@ -812,7 +828,7 @@ class _SideNavState extends State<_SideNav> {
     if (!DeviceInfo.current.tv) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final primary = FocusManager.instance.primaryFocus;
-      if (mounted && (primary == null || primary is FocusScopeNode)) _nodes[widget.index].requestFocus();
+      if (mounted && (primary == null || primary is FocusScopeNode)) focusSelected();
     });
   }
 
@@ -828,8 +844,9 @@ class _SideNavState extends State<_SideNav> {
             children: [
               const SizedBox(height: 8),
               for (var i = 0; i < _navLabels.length; i++)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                if (!widget.hideShorts || i != 1)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                   child: SizedBox(
                     height: 68,
                     width: double.infinity,
