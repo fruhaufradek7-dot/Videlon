@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../features/account/account.dart';
 import '../../features/watch/player_view.dart';
 import '../../features/watch/watch_details.dart';
 import '../../player/video_player_service.dart';
@@ -683,7 +684,7 @@ class _MiniProgress extends ConsumerWidget {
 const _navLabels = ['Domů', 'Krátká videa', 'Odběry', 'Vy'];
 
 /// Jedna položka spodní nebo postranní navigace.
-class _NavItem extends StatelessWidget {
+class _NavItem extends ConsumerWidget {
   const _NavItem({required this.i, required this.selected, required this.onTap, this.focusNode, this.rail = false});
 
   final int i;
@@ -695,13 +696,16 @@ class _NavItem extends StatelessWidget {
   final bool rail;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final c = context.yt;
+    final auth = i == 3 ? ref.watch(authProvider).value : null;
     final icon = switch (i) {
       0 => Icon(Symbols.home, fill: selected ? 1 : 0, size: 26, weight: 300),
       1 => ShortsIcon(size: 26, filled: selected, color: c.textPrimary),
       2 => Icon(Symbols.subscriptions, fill: selected ? 1 : 0, size: 26, weight: 300),
-      _ => Icon(Symbols.account_circle, fill: selected ? 1 : 0, size: 26, weight: 300),
+      _ => auth?.signedIn == true
+          ? Avatar(auth?.account?.photo, size: 26, name: auth?.account?.name)
+          : Icon(Symbols.account_circle, fill: selected ? 1 : 0, size: 26, weight: 300),
     };
     return FocusHighlight(
       radius: 12,
