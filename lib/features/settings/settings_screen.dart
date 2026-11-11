@@ -271,6 +271,14 @@ class GeneralSettingsScreen extends ConsumerWidget {
               },
             ),
             SwitchListTile(
+              title: const Text('Skrýt Shorts'),
+              subtitle: const Text(
+                'Skrýt krátká videa na domovské obrazovce, v odběrech a navigaci',
+              ),
+              value: s.hideShorts,
+              onChanged: (value) => ctl.update(s.copyWith(hideShorts: value)),
+            ),
+            SwitchListTile(
               title: const Text('Obraz v obraze'),
               subtitle: const Text(
                 'Pokračovat ve sledování v malém okně po opuštění aplikace',
