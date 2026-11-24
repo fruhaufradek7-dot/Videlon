@@ -154,6 +154,7 @@ class AuthController extends AsyncNotifier<AuthState> {
       var page = await _yt.accountFeed('FEplaylist_aggregation');
       while (true) {
         for (final playlist in page.entries.allItems.whereType<PlaylistItem>()) {
+          if (playlist.id == 'WL' || playlist.id == 'LL') continue;
           if (!await library.isRemotePlaylistLinked(playlist.id) &&
               !await library.isPlaylistSavedOnce(playlist.id)) {
             await library.setPlaylistSaved(playlist, true);
