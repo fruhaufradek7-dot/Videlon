@@ -10,7 +10,7 @@
   - The account's YouTube recommendations, mixed into Home (`HomeMixer`, weight 3).
   - In the You tab: YouTube history (`FEhistory`), YouTube playlists (`FEplaylist_aggregation`), Watch later (`VLWL`), Liked videos (`VLLL`).
   - **Import subscriptions from your account:** `FEchannels`, all pages, into the local subscriptions.
-  - **Sync:** likes, subscribe/unsubscribe and Watch later are mirrored to the account (`LibraryRepository.remoteSync`). This is best-effort; the local library stays the source of truth.
+  - **Sync:** likes, subscribe/unsubscribe and Watch later are mirrored to the account (`LibraryRepository.remoteSync`). Ordinary local playlists are also created in the YouTube account and add/remove/rename/delete operations are mirrored. A persistent local-ID ↔ YouTube-ID mapping prevents duplicates. Existing local playlists are uploaded on sign-in; the account's playlist shelf is imported into Tvoje knihovna. This is best-effort; the local library stays the source of truth.
 - **Sign out:** deletes the stored cookie and clears the WebView cookies. The local library stays.
 - **Status (2026-10-04, with the user's account, every change undone afterwards):**
   - Sign-in, the account's Home, YouTube playlists, Liked videos and Watch later pages: work.
