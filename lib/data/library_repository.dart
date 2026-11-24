@@ -372,6 +372,9 @@ class LibraryRepository {
   Stream<bool> watchIsPlaylistSaved(String id) =>
       (db.select(db.savedPlaylists)..where((s) => s.playlistId.equals(id))).watch().map((r) => r.isNotEmpty);
 
+  Future<bool> isPlaylistSavedOnce(String id) async =>
+      (await (db.select(db.savedPlaylists)..where((s) => s.playlistId.equals(id))).getSingleOrNull()) != null;
+
   Stream<List<PlaylistItem>> savedPlaylists() =>
       (db.select(db.savedPlaylists)..orderBy([(s) => OrderingTerm.desc(s.savedAt)])).watch().map(
         (rows) => [
