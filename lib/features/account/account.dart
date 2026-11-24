@@ -106,27 +106,32 @@ class AuthController extends AsyncNotifier<AuthState> {
     switch (action) {
       case 'create':
         await _ensureRemotePlaylist(localId);
+        break;
       case 'add':
         final remoteId = await _ensureRemotePlaylist(localId);
         if (remoteId != null && value != null) {
           await _yt.editPlaylist(remoteId, value, add: true);
         }
+        break;
       case 'remove':
         final remoteId = await library.remotePlaylistId(localId);
         if (remoteId != null && value != null) {
           await _yt.editPlaylist(remoteId, value, add: false);
         }
+        break;
       case 'rename':
         final remoteId = await library.remotePlaylistId(localId);
         if (remoteId != null && value != null) {
           await _yt.renamePlaylist(remoteId, value);
         }
+        break;
       case 'delete':
         final remoteId = await library.remotePlaylistId(localId);
         if (remoteId != null) {
           await _yt.deletePlaylist(remoteId);
           await library.clearRemotePlaylistId(localId);
         }
+        break;
     }
   }
 
