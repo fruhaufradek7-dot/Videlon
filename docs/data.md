@@ -11,6 +11,7 @@
 | `FeedVideos` (`FeedVideoRow`) | Subscription uploads from RSS, last 60 days |
 | `Playlists` / `PlaylistItems` (`PlaylistEntryRow`) | Local playlists; **Watch later** is the playlist with `isWatchLater` (created at first launch) |
 | `SavedPlaylists` | YouTube playlists saved to the library |
+| `playlist_sync` (custom SQL table) | Maps a local playlist ID to its YouTube playlist ID; cascades when the local playlist is deleted |
 | `SearchHistory` | Search queries |
 | `Downloads` (v2) | Offline videos: state, height, path, sizes, error (docs/downloads.md) |
 
@@ -25,6 +26,7 @@
   - `resumePosition` returns null below 15 s or near the end.
 - **Everything else:** likes, playlists (add/remove/move/rename/delete), Watch later toggle, saved playlists, subscriptions (incl. bulk import), search history.
 - **`remoteSync`** (set by the account feature) mirrors likes, subscriptions and Watch later to a signed-in account; it's best-effort.
+- **`remotePlaylistSync`** mirrors local playlist create/add/remove/rename/delete operations. The `playlist_sync` table stores the remote ID. On sign-in, local playlists created offline are uploaded and the account's `FEplaylist_aggregation` shelf is imported into the saved-playlist section of Tvoje knihovna.
 
 ## Subscriptions feed (`lib/data/subscriptions_feed.dart`)
 
