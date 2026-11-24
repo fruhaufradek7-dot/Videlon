@@ -151,7 +151,16 @@ class AppDatabase extends _$AppDatabase {
     onUpgrade: (m, from, to) async {
       if (from < 2) await m.createTable(downloads);
     },
-    beforeOpen: (details) async => customStatement('PRAGMA foreign_keys = ON'),
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+      await customStatement('''
+        CREATE TABLE IF NOT EXISTS playlist_sync (
+          local_playlist_id INTEGER PRIMARY KEY
+            REFERENCES playlists(id) ON DELETE CASCADE,
+          youtube_playlist_id TEXT NOT NULL UNIQUE
+        )
+      ''');
+    },
   );
 }
 
