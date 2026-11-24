@@ -1,4 +1,6 @@
 
+import 'dart:developer' as developer;
+
 import 'package:drift/drift.dart';
 
 import '../innertube/models.dart';
@@ -36,6 +38,64 @@ class LibraryRepository {
   /// Synchronizuje oblíbená videa, odběry a seznam Přehrát později s přihlášeným účtem.
   /// Synchronizace je pouze doplňková; hlavním zdrojem dat zůstává místní knihovna.
   void Function(String action, String id, bool on)? remoteSync;
+
+  /// Mirrors ordinary local playlist mutations to the signed-in YouTube account.
+  Future<void> Function(String action, int playlistId, {String? value})? remotePlaylistSync;
+
+  Future<void> _syncPlaylist(String action, int playlistId, {String? value}) async {
+    try {
+      await remotePlaylistSync?.call(action, playlistId, value: value);
+    } catch (error, stack) {
+      developer.log(
+        'Synchronizace playlistu $playlistId ($action) selhala',
+        name: 'Videlon.playlists',
+        error: error,
+        stackTrace: stack,
+      );
+    }
+  }
+
+  /// Local playlist records and contents used when signing in for the first time.
+  Future<List<Playlist>> playlistsOnce() => db.select(db.playlists).get();
+
+  Future<Playlist?> playlistOnce(int id) =>
+      (db.select(db.playlists)..where((p) => p.id.equals(id))).getSingleOrNull();
+
+  Future<List<VideoItem>> playlistVideosOnce(int id) async {
+    final rows = await (db.select(db.playlistItems).join([
+      innerJoin(db.videos, db.videos.videoId.equalsExp(db.playlistItems.videoId)),
+    ])
+      ..where(db.playlistItems.playlistId.equals(id))
+      ..orderBy([OrderingTerm.asc(db.playlistItems.position)])).get();
+    return [for (final row in rows) videoFromRow(row.readTable(db.videos))];
+  }
+
+  Future<String?> remotePlaylistId(int localId) async {
+    final rows = await db.customSelect(
+      'SELECT youtube_playlist_id FROM playlist_sync WHERE local_playlist_id = ?',
+      variables: [Variable<int>(localId)],
+    ).get();
+    return rows.isEmpty ? null : rows.first.read<String>('youtube_playlist_id');
+  }
+
+  Future<void> setRemotePlaylistId(int localId, String youtubeId) => db.customStatement(
+    'INSERT OR REPLACE INTO playlist_sync (local_playlist_id, youtube_playlist_id) VALUES (?, ?)',
+    variables: [Variable<int>(localId), Variable<String>(youtubeId)],
+  );
+
+  Future<void> clearRemotePlaylistId(int localId) => db.customStatement(
+    'DELETE FROM playlist_sync WHERE local_playlist_id = ?',
+    variables: [Variable<int>(localId)],
+  );
+
+  Future<bool> isRemotePlaylistLinked(String youtubeId) async {
+    final rows = await db.customSelect(
+      'SELECT 1 FROM playlist_sync WHERE youtube_playlist_id = ? LIMIT 1',
+      variables: [Variable<String>(youtubeId)],
+    ).get();
+    return rows.isNotEmpty;
+  }
+
 
   Future<void> _upsertVideo(VideoItem v) => db.into(db.videos).insertOnConflictUpdate(videoToCompanion(v));
 
@@ -156,16 +216,35 @@ class LibraryRepository {
         );
   }
 
-  Future<int> createPlaylist(String name) =>
-      db.into(db.playlists).insert(PlaylistsCompanion.insert(name: name, createdAt: DateTime.now()));
+  Future<int> createPlaylist(String name) async {
+    final id = await db.into(db.playlists).insert(
+      PlaylistsCompanion.insert(name: name, createdAt: DateTime.now()),
+    );
+    await _syncPlaylist('create', id, value: name);
+    return id;
+  }
 
-  Future<void> renamePlaylist(int id, String name) =>
-      (db.update(db.playlists)..where((p) => p.id.equals(id))).write(PlaylistsCompanion(name: Value(name)));
+  Future<void> renamePlaylist(int id, String name) async {
+    final playlist = await playlistOnce(id);
+    await (db.update(db.playlists)..where((p) => p.id.equals(id))).write(
+      PlaylistsCompanion(name: Value(name)),
+    );
+    if (playlist != null && !playlist.isWatchLater) {
+      await _syncPlaylist('rename', id, value: name);
+    }
+  }
 
-  Future<void> deletePlaylist(int id) => (db.delete(db.playlists)..where((p) => p.id.equals(id))).go();
+  Future<void> deletePlaylist(int id) async {
+    final playlist = await playlistOnce(id);
+    if (playlist != null && !playlist.isWatchLater) {
+      await _syncPlaylist('delete', id);
+    }
+    await (db.delete(db.playlists)..where((p) => p.id.equals(id))).go();
+  }
 
   Future<void> addToPlaylist(int playlistId, VideoItem video) async {
     await _upsertVideo(video);
+    final playlist = await playlistOnce(playlistId);
     final exists = await (db.select(
       db.playlistItems,
     )..where((i) => i.playlistId.equals(playlistId) & i.videoId.equals(video.id))).getSingleOrNull();
@@ -187,10 +266,19 @@ class LibraryRepository {
             addedAt: DateTime.now(),
           ),
         );
+    if (playlist != null && !playlist.isWatchLater) {
+      await _syncPlaylist('add', playlistId, value: video.id);
+    }
   }
 
-  Future<void> removeFromPlaylist(int playlistId, String videoId) =>
-      (db.delete(db.playlistItems)..where((i) => i.playlistId.equals(playlistId) & i.videoId.equals(videoId))).go();
+  Future<void> removeFromPlaylist(int playlistId, String videoId) async {
+    final playlist = await playlistOnce(playlistId);
+    final removed = await (db.delete(db.playlistItems)
+      ..where((i) => i.playlistId.equals(playlistId) & i.videoId.equals(videoId))).go();
+    if (removed > 0 && playlist != null && !playlist.isWatchLater) {
+      await _syncPlaylist('remove', playlistId, value: videoId);
+    }
+  }
 
   /// Přesune položku z pozice [from] na pozici [to] v aktuálním pořadí.
   Future<void> movePlaylistItem(int playlistId, int from, int to) => db.transaction(() async {
