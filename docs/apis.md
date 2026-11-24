@@ -47,7 +47,7 @@ Every network API and native channel YouPipe talks to. Nothing here is secret, a
 | `subscribedChannels()` | `browse` `FEchannels`, then `guide` when it's empty | The account's subscriptions: a shelf of `channelRenderer`s; with none, the page holds only its sort menu, and the sidebar (`guideSubscriptionsSectionRenderer`) confirms | Signed in |
 | `like(id, liked:)` | `like/like`, `like/removelike` | `target: {videoId}` | Signed in |
 | `subscribe(id, subscribe:)` | `subscription/subscribe`, `/unsubscribe` | `channelIds` | Signed in |
-| `editPlaylist(id, videoId, add:)` | `browse/edit_playlist` | `playlistId` (`WL` = Watch later), `actions` | Signed in |
+| `editPlaylist(id, videoId, add:)` / `renamePlaylist(id, name)` | `browse/edit_playlist` | `playlistId`, `actions` (`ACTION_ADD_VIDEO`, `ACTION_REMOVE_VIDEO_BY_VIDEO_ID`, `ACTION_SET_PLAYLIST_NAME`) | Signed in |\n| `createPlaylist(title, videoIds:)` | `playlist/create` | `title`, `privacyStatus: PRIVATE`, optional `videoIds` | Signed in; returns the new playlist ID |\n| `deletePlaylist(id)` | `playlist/delete` | `playlistId` | Signed in |
 
 **Gone or empty signed out:** `FEtrending`, `FEexplore` (HTTP 400).
 
