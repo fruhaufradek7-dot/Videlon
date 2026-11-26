@@ -50,8 +50,8 @@ enum VideoQualityPref {
 class AppSettings {
   const AppSettings({
     this.themeMode = ThemeMode.system,
-    this.hl = 'en',
-    this.gl = 'US',
+    this.hl = 'cs',
+    this.gl = 'CZ',
     this.quality = VideoQualityPref.auto,
     this.autoplay = true,
     this.saveHistory = true,
@@ -113,10 +113,13 @@ class SettingsController extends Notifier<AppSettings> {
   @override
   AppSettings build() {
     final p = ref.watch(prefsProvider);
+    final savedHl = p.getString('hl');
     final s = AppSettings(
       themeMode: ThemeMode.values.asNameMap()[p.getString('themeMode')] ?? ThemeMode.system,
-      hl: p.getString('hl') ?? 'en',
-      gl: p.getString('gl') ?? 'US',
+      // Older builds persisted their English default even though the app has no language selector.
+      // Migrate that legacy value so Czech-region results request Czech metadata as well.
+      hl: savedHl == null || savedHl == 'en' ? 'cs' : savedHl,
+      gl: p.getString('gl') ?? 'CZ',
       quality: VideoQualityPref.values.asNameMap()[p.getString('quality')] ?? VideoQualityPref.auto,
       autoplay: p.getBool('autoplay') ?? true,
       saveHistory: p.getBool('saveHistory') ?? true,
@@ -126,6 +129,7 @@ class SettingsController extends Notifier<AppSettings> {
       hideShorts: p.getBool('hideShorts') ?? false,
     );
     _apply(s);
+    if (savedHl == 'en') unawaited(p.setString('hl', 'cs'));
     return s;
   }
 
@@ -153,7 +157,21 @@ class SettingsController extends Notifier<AppSettings> {
     await _prefs.setBool('resume', s.resume);
     await _prefs.setBool('pip', s.pip);
     await _prefs.setBool('hideShorts', s.hideShorts);
-    if (regionChanged) ref.invalidate(homeProvider);
+    if (regionChanged) {
+      // A country/language change affects YouTube's localized titles and regional feeds.
+      // Invalidate every active InnerTube-backed page so it is fetched with the new context.
+      ref.invalidate(homeProvider);
+      ref.invalidate(homeShortsProvider);
+      ref.invalidate(searchResultsProvider);
+      ref.invalidate(searchSuggestionsProvider);
+      ref.invalidate(relatedProvider);
+      ref.invalidate(commentsProvider);
+      ref.invalidate(repliesProvider);
+      ref.invalidate(channelProvider);
+      ref.invalidate(channelListProvider);
+      ref.invalidate(playlistProvider);
+      ref.invalidate(playlistVideosProvider);
+    }
   }
 }
 

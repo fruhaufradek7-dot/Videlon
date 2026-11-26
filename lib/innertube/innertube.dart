@@ -35,7 +35,7 @@ enum SearchFilter {
 
 /// YouTube (www.youtube.com) InnerTube client for browse/search/next/reel. Pure Dart, no Flutter imports.
 class InnerTube {
-  InnerTube({Dio? dio, this.hl = 'en', this.gl = 'US', this.visitorData})
+  InnerTube({Dio? dio, this.hl = 'cs', this.gl = 'CZ', this.visitorData})
     : _dio =
           dio ??
           Dio(BaseOptions(connectTimeout: const Duration(seconds: 15), receiveTimeout: const Duration(seconds: 20)));
@@ -185,6 +185,40 @@ class InnerTube {
           : {'action': 'ACTION_REMOVE_VIDEO_BY_VIDEO_ID', 'removedVideoId': videoId},
     ],
   });
+
+  /// Creates a private playlist in the signed-in account and returns its YouTube ID.
+  Future<String> createPlaylist(String title, {List<String> videoIds = const []}) async {
+    if (!signedIn) throw InnerTubeException('Přihlášení k YouTube je vyžadováno.');
+    final data = await _post('playlist/create', {
+      'title': title,
+      'privacyStatus': 'PRIVATE',
+      if (videoIds.isNotEmpty) 'videoIds': videoIds,
+    });
+    final id = nav<String>(data, ['playlistId']) ??
+        nav<String>(data, ['actions', 0, 'createPlaylistAction', 'playlistId']) ??
+        nav<String>(data, ['playlistEditResultsRenderer', 'playlistId']);
+    if (id == null || id.isEmpty) {
+      throw InnerTubeException('YouTube vytvořil playlist, ale nevrátil jeho ID.');
+    }
+    return id;
+  }
+
+  /// Renames a playlist owned by the signed-in account.
+  Future<void> renamePlaylist(String playlistId, String name) async {
+    if (!signedIn) throw InnerTubeException('Přihlášení k YouTube je vyžadováno.');
+    await _post('browse/edit_playlist', {
+      'playlistId': playlistId,
+      'actions': [
+        {'action': 'ACTION_SET_PLAYLIST_NAME', 'playlistName': name},
+      ],
+    });
+  }
+
+  /// Deletes a playlist owned by the signed-in account.
+  Future<void> deletePlaylist(String playlistId) async {
+    if (!signedIn) throw InnerTubeException('Přihlášení k YouTube je vyžadováno.');
+    await _post('playlist/delete', {'playlistId': playlistId});
+  }
 
   /// The Shorts feed. Without a token it starts a fresh sequence.
   Future<ShortsPage> shorts([String? continuation]) async {

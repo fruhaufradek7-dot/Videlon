@@ -1,5 +1,6 @@
 
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -37,6 +38,7 @@ class AuthController extends AsyncNotifier<AuthState> {
   static const _storage = FlutterSecureStorage();
 
   InnerTube get _yt => ref.read(innerTubeProvider);
+  bool _playlistSyncRunning = false;
 
   @override
   Future<AuthState> build() async {
@@ -44,6 +46,7 @@ class AuthController extends AsyncNotifier<AuthState> {
     _yt.cookie = cookie;
     _hookSync();
     if (!_yt.signedIn) return const AuthState();
+    unawaited(_syncAccountPlaylists());
     try {
       return AuthState(signedIn: true, account: await _yt.accountInfo());
     } catch (e) {
@@ -56,7 +59,8 @@ class AuthController extends AsyncNotifier<AuthState> {
   /// Lajky, odběry a videa Přehrát později se synchronizují s účtem.
   /// Místní knihovna zůstává hlavním zdrojem dat.
   void _hookSync() {
-    ref.read(libraryProvider).remoteSync = (action, id, on) {
+    final library = ref.read(libraryProvider);
+    library.remoteSync = (action, id, on) {
       if (!_yt.signedIn) return;
       final Future<void> call = switch (action) {
         'like' => _yt.like(id, liked: on),
@@ -70,6 +74,110 @@ class AuthController extends AsyncNotifier<AuthState> {
         ),
       );
     };
+    library.remotePlaylistSync = _syncPlaylistAction;
+  }
+
+  /// Creates a matching YouTube playlist for a local one if it has not been linked yet.
+  Future<String?> _ensureRemotePlaylist(int localId) async {
+    final library = ref.read(libraryProvider);
+    final existing = await library.remotePlaylistId(localId);
+    if (existing != null) return existing;
+
+    final local = await library.playlistOnce(localId);
+    if (local == null || local.isWatchLater) return null;
+
+    final videos = await library.playlistVideosOnce(localId);
+    final remoteId = await _yt.createPlaylist(
+      local.name,
+      videoIds: videos.map((video) => video.id).toList(),
+    );
+    await library.setRemotePlaylistId(localId, remoteId);
+    return remoteId;
+  }
+
+  /// Called after local changes; failures leave the local library intact and are retried on next sign-in.
+  Future<void> _syncPlaylistAction(
+    String action,
+    int localId, {
+    String? value,
+  }) async {
+    if (!_yt.signedIn) return;
+    final library = ref.read(libraryProvider);
+    switch (action) {
+      case 'create':
+        await _ensureRemotePlaylist(localId);
+        break;
+      case 'add':
+        final existingRemoteId = await library.remotePlaylistId(localId);
+        if (existingRemoteId == null) {
+          // Creating the remote playlist copies all current local videos,
+          // including the video that triggered this add callback.
+          await _ensureRemotePlaylist(localId);
+        } else if (value != null) {
+          await _yt.editPlaylist(existingRemoteId, value, add: true);
+        }
+        break;
+      case 'remove':
+        final remoteId = await library.remotePlaylistId(localId);
+        if (remoteId != null && value != null) {
+          await _yt.editPlaylist(remoteId, value, add: false);
+        }
+        break;
+      case 'rename':
+        final remoteId = await library.remotePlaylistId(localId);
+        if (remoteId != null && value != null) {
+          await _yt.renamePlaylist(remoteId, value);
+        }
+        break;
+      case 'delete':
+        final remoteId = await library.remotePlaylistId(localId);
+        if (remoteId != null) {
+          await _yt.deletePlaylist(remoteId);
+          await library.clearRemotePlaylistId(localId);
+        }
+        break;
+    }
+  }
+
+  /// Makes existing local playlists available in YouTube and imports the account's own playlists
+  /// into Tvoje knihovna. Local playlists are linked by ID, so they are not shown twice.
+  Future<void> _syncAccountPlaylists() async {
+    if (_playlistSyncRunning || !_yt.signedIn) return;
+    _playlistSyncRunning = true;
+    try {
+      final library = ref.read(libraryProvider);
+
+      // Upload playlists created before the user signed in.
+      for (final playlist in await library.playlistsOnce()) {
+        if (!playlist.isWatchLater) {
+          await _ensureRemotePlaylist(playlist.id);
+        }
+      }
+
+      // Import all pages of the account playlist shelf into the library.
+      var page = await _yt.accountFeed('FEplaylist_aggregation');
+      while (true) {
+        for (final playlist in page.entries.allItems.whereType<PlaylistItem>()) {
+          if (playlist.id == 'WL' || playlist.id == 'LL') continue;
+          if (!await library.isRemotePlaylistLinked(playlist.id) &&
+              !await library.isPlaylistSavedOnce(playlist.id)) {
+            await library.setPlaylistSaved(playlist, true);
+          }
+        }
+        final continuation = page.continuation;
+        if (continuation == null) break;
+        page = await _yt.browseContinuation(continuation);
+      }
+    } catch (error, stack) {
+      developer.log(
+        'Synchronizace playlistů s YouTube selhala',
+        name: 'Videlon.account',
+        error: error,
+        stackTrace: stack,
+      );
+    } finally {
+      _playlistSyncRunning = false;
+    }
   }
 
   /// Načte cookies z WebView po přechodu na youtube.com.
@@ -85,6 +193,7 @@ class AuthController extends AsyncNotifier<AuthState> {
     final account = await _yt.accountInfo().catchError((Object _) => null);
     state = AsyncData(AuthState(signedIn: true, account: account));
     ref.invalidate(homeProvider);
+    unawaited(_syncAccountPlaylists());
     return true;
   }
 
@@ -373,6 +482,8 @@ class AccountFeedController extends AsyncNotifier<PagedList<FeedEntry>> {
 
   @override
   Future<PagedList<FeedEntry>> build() async {
+    // Re-fetch account shelves when the selected YouTube locale or country changes.
+    ref.watch(settingsProvider.select((s) => (s.hl, s.gl)));
     final page = await ref.read(innerTubeProvider).accountFeed(browseId);
     return PagedList(page.entries, continuation: page.continuation);
   }

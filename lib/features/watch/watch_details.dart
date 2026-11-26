@@ -660,14 +660,19 @@ class _CommentTileState extends ConsumerState<CommentTile> {
                 Row(
                   children: [
                     Flexible(
-                      child: cm.isCreator
-                          ? Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                              decoration: BoxDecoration(color: c.chip, borderRadius: BorderRadius.circular(10)),
-                              child: Text(cm.author, style: meta.copyWith(color: c.textPrimary)),
-                            )
-                          : Text(cm.author, style: meta, overflow: TextOverflow.ellipsis),
+                      child: Text(cm.author, style: meta, overflow: TextOverflow.ellipsis),
                     ),
+                    if (cm.isCreator) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(color: c.chip, borderRadius: BorderRadius.circular(8)),
+                        child: Text(
+                          'Autor',
+                          style: meta.copyWith(color: c.textPrimary, fontSize: 11, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
                     if (cm.verified) ...[
                       const SizedBox(width: 2),
                       Icon(Symbols.check_circle, size: 12, fill: 1, color: c.textSecondary),
