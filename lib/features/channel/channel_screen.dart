@@ -12,18 +12,6 @@ import '../../ui/widgets/common.dart';
 import '../../ui/widgets/html_text.dart';
 import '../../ui/widgets/video_tiles.dart';
 
-/// Záložky kanálu podporované aplikací.
-/// Podporuje anglické i české názvy z YouTube.
-const _supportedTabs = {
-  'Home', 'Domů',
-  'Videos', 'Videa',
-  'Shorts', 'Krátká videa',
-  'Live', 'Živě',
-  'Releases', 'Novinky',
-  'Playlists', 'Playlisty',
-  'Podcasts', 'Podcasty',
-};
-
 String _translatedTab(String title) => switch (title) {
       'Home' || 'Domů' => 'Domů',
       'Videos' || 'Videa' => 'Videa',
@@ -82,7 +70,9 @@ class ChannelScreen extends ConsumerWidget {
       data: (p) {
         // Aktualizuje název a obrázek kanálu v odběrech.
         ref.read(libraryProvider).refreshSubscription(p.asItem);
-        final tabs = p.tabs.where((t) => _supportedTabs.contains(t.title)).toList();
+        // Zachovej i nové názvy záložek, které YouTube postupně zavádí.
+        // Pevný seznam mohl skrýt Domovskou stránku kanálu.
+        final tabs = p.tabs;
 
         return DefaultTabController(
           length: tabs.length,
