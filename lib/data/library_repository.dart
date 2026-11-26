@@ -73,14 +73,14 @@ class LibraryRepository {
   Future<String?> remotePlaylistId(int localId) async {
     final rows = await db.customSelect(
       'SELECT youtube_playlist_id FROM playlist_sync WHERE local_playlist_id = ?',
-      variables: [Variable<int>(localId)],
+      [localId],
     ).get();
     return rows.isEmpty ? null : rows.first.read<String>('youtube_playlist_id');
   }
 
   Future<void> setRemotePlaylistId(int localId, String youtubeId) => db.customStatement(
     'INSERT OR REPLACE INTO playlist_sync (local_playlist_id, youtube_playlist_id) VALUES (?, ?)',
-    variables: [Variable<int>(localId), Variable<String>(youtubeId)],
+    [localId, youtubeId],
   );
 
   Future<void> clearRemotePlaylistId(int localId) => db.customStatement(
