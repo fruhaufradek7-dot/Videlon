@@ -115,7 +115,9 @@ class SettingsController extends Notifier<AppSettings> {
     final p = ref.watch(prefsProvider);
     final s = AppSettings(
       themeMode: ThemeMode.values.asNameMap()[p.getString('themeMode')] ?? ThemeMode.system,
-      hl: p.getString('hl') ?? 'cs',
+      // Older builds persisted their English default even though the app has no language selector.
+      // Migrate that legacy value so Czech-region results request Czech metadata as well.
+      hl: p.getString('hl') == null || p.getString('hl') == 'en' ? 'cs' : p.getString('hl')!,
       gl: p.getString('gl') ?? 'CZ',
       quality: VideoQualityPref.values.asNameMap()[p.getString('quality')] ?? VideoQualityPref.auto,
       autoplay: p.getBool('autoplay') ?? true,
@@ -126,6 +128,7 @@ class SettingsController extends Notifier<AppSettings> {
       hideShorts: p.getBool('hideShorts') ?? false,
     );
     _apply(s);
+    if (p.getString('hl') == 'en') unawaited(p.setString('hl', 'cs'));
     return s;
   }
 
@@ -153,7 +156,21 @@ class SettingsController extends Notifier<AppSettings> {
     await _prefs.setBool('resume', s.resume);
     await _prefs.setBool('pip', s.pip);
     await _prefs.setBool('hideShorts', s.hideShorts);
-    if (regionChanged) ref.invalidate(homeProvider);
+    if (regionChanged) {
+      // A country/language change affects YouTube's localized titles and regional feeds.
+      // Invalidate every active InnerTube-backed page so it is fetched with the new context.
+      ref.invalidate(homeProvider);
+      ref.invalidate(homeShortsProvider);
+      ref.invalidate(searchResultsProvider);
+      ref.invalidate(searchSuggestionsProvider);
+      ref.invalidate(relatedProvider);
+      ref.invalidate(commentsProvider);
+      ref.invalidate(repliesProvider);
+      ref.invalidate(channelProvider);
+      ref.invalidate(channelListProvider);
+      ref.invalidate(playlistProvider);
+      ref.invalidate(playlistVideosProvider);
+    }
   }
 }
 
