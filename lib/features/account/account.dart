@@ -482,6 +482,8 @@ class AccountFeedController extends AsyncNotifier<PagedList<FeedEntry>> {
 
   @override
   Future<PagedList<FeedEntry>> build() async {
+    // Re-fetch account shelves when the selected YouTube locale or country changes.
+    ref.watch(settingsProvider.select((s) => (s.hl, s.gl)));
     final page = await ref.read(innerTubeProvider).accountFeed(browseId);
     return PagedList(page.entries, continuation: page.continuation);
   }
