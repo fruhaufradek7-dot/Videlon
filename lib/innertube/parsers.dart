@@ -220,41 +220,40 @@ String? _channelIdIn(Object? node) {
   return null;
 }
 
-/// Some YouTube responses expose view counts only in accessibility labels.
-String? _accessibilityViewText(Object? node) {
-  final pattern = RegExp(r'(?:no views|[\\d.,]+\\s*[KMB]?\\s+views?)', caseSensitive: false);
+/// Extracts a view count from both classic renderers and newer YouTube view models.
+String? _findViewCountText(Object? node) {
+  final viewPattern = RegExp(r'(?:no views|[\\d.,]+\\s*[KMB]?\\s*(?:views?|watching)|[\\d.,]+\\s*zhlédnutí)', caseSensitive: false);
   String? found;
-  void walk(Object? value) {
-    if (found != null) return;
-    if (value is Map) {
+  void walk(Object? value, {String? key}) {
+    if (found != null || value == null) return;
+    if (value is String) {
+      if (key == 'accessibilityLabel' || key == 'content' || key == 'simpleText' ||
+          key == 'text' || key == 'viewCountText' || key == 'shortViewCountText') {
+        final match = viewPattern.firstMatch(value);
+        if (match != null) found = match.group(0);
+      }
+    } else if (value is Map) {
       for (final entry in value.entries) {
-        if (entry.key == 'accessibilityLabel' && entry.value is String) {
-          final match = pattern.firstMatch(entry.value as String);
-          if (match != null) {
-            found = match.group(0);
-            return;
-          }
-        }
-        walk(entry.value);
+        if (found != null) break;
+        walk(entry.value, key: entry.key.toString());
       }
     } else if (value is List) {
       for (final item in value) {
-        walk(item);
-        if (found != null) return;
+        if (found != null) break;
+        walk(item, key: key);
       }
     }
   }
   walk(node);
   return found;
 }
-
 YtItem? _video(Json v) {
   final id = v['videoId'] as String?;
   final title = textOf(v['title']) ?? textOf(v['headline']);
   if (id == null || title == null) return null;
   final byline = v['longBylineText'] ?? v['ownerText'] ?? v['shortBylineText'];
   final length = textOf(v['lengthText']);
-  final views = textOf(v['shortViewCountText']) ?? textOf(v['viewCountText']) ?? _accessibilityViewText(v);
+  final views = textOf(v['shortViewCountText']) ?? textOf(v['viewCountText']) ?? _findViewCountText(v);
   final live =
       length == null &&
       (views?.contains('watching') == true ||
@@ -287,7 +286,7 @@ YtItem? _lockup(Json v) {
   if (id == null || title == null) return null;
   final rows = navList(meta, ['metadata', 'contentMetadataViewModel', 'metadataRows'])
       .map((r) => navList(r, ['metadataParts'])
-          .map((p) => nav<String>(p, ['text', 'content']) ?? p['accessibilityLabel'] as String?)
+          .map((p) => nav<String>(p, ['text', 'content']) ?? _findViewCountText(p) ?? p['accessibilityLabel'] as String?)
           .nonNulls
           .toList())
       .where((r) => r.isNotEmpty)
@@ -338,7 +337,7 @@ YtItem? _lockup(Json v) {
     channelAvatar: avatar,
     thumbnail: _bestImage(nav(image, ['image'])),
     durationText: duration,
-    viewsText: localizeViewsText(views ?? info.firstOrNull ?? _accessibilityViewText(v)),
+    viewsText: localizeViewsText(views ?? info.firstOrNull ?? _findViewCountText(meta)),
     publishedText: _czechAge(age),
     isLive: duration == null && badges.any((b) => b.toUpperCase() == 'LIVE'),
   );
@@ -592,13 +591,25 @@ ChannelPage parseChannel(Json data, String id) {
   final parts = _metadataParts(view);
   final tabs = <ChannelTab>[];
   Object? selectedContent;
-  for (final t in navList(data, ['contents', 'twoColumnBrowseResultsRenderer', 'tabs'])) {
-    final tab = nav<Json>(t, ['tabRenderer']);
-    final title = nav<String>(tab, ['title']);
-    if (tab == null || title == null) continue;
-    final selected = tab['selected'] == true;
-    tabs.add(ChannelTab(title, nav<String>(tab, ['endpoint', 'browseEndpoint', 'params']), selected: selected));
-    if (selected) selectedContent = tab['content'];
+  final rawTabs = navList(data, ['contents', 'twoColumnBrowseResultsRenderer', 'tabs']);
+  for (final item in rawTabs) {
+    final tab = nav<Json>(item, ['tabRenderer']);
+    final viewModel = nav<Json>(item, ['tabViewModel']);
+    final title = nav<String>(tab, ['title']) ??
+        nav<String>(viewModel, ['title', 'content']) ??
+        nav<String>(viewModel, ['title', 'dynamicTextViewModel', 'text', 'content']);
+    if (title == null) continue;
+    final selected = tab?['selected'] == true || viewModel?['selected'] == true;
+    final params = nav<String>(tab, ['endpoint', 'browseEndpoint', 'params']) ??
+        nav<String>(viewModel, ['onTap', 'innertubeCommand', 'browseEndpoint', 'params']) ??
+        nav<String>(viewModel, ['endpoint', 'browseEndpoint', 'params']);
+    tabs.add(ChannelTab(title, params, selected: selected));
+    if (selected) selectedContent = tab?['content'] ?? viewModel?['content'];
+  }
+  // Některé varianty odpovědi YouTube kartu Home úplně vynechají.
+  // Přidáme ji jako první záložku; požadavek bez params načte výchozí obsah kanálu.
+  if (!tabs.any((t) => t.title.toLowerCase() == 'home' || t.title.toLowerCase() == 'domů')) {
+    tabs.insert(0, const ChannelTab('Home', null));
   }
   return ChannelPage(
     id: id,
