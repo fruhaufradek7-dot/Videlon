@@ -113,11 +113,12 @@ class SettingsController extends Notifier<AppSettings> {
   @override
   AppSettings build() {
     final p = ref.watch(prefsProvider);
+    final savedHl = p.getString('hl');
     final s = AppSettings(
       themeMode: ThemeMode.values.asNameMap()[p.getString('themeMode')] ?? ThemeMode.system,
       // Older builds persisted their English default even though the app has no language selector.
       // Migrate that legacy value so Czech-region results request Czech metadata as well.
-      hl: p.getString('hl') == null || p.getString('hl') == 'en' ? 'cs' : p.getString('hl')!,
+      hl: savedHl == null || savedHl == 'en' ? 'cs' : savedHl,
       gl: p.getString('gl') ?? 'CZ',
       quality: VideoQualityPref.values.asNameMap()[p.getString('quality')] ?? VideoQualityPref.auto,
       autoplay: p.getBool('autoplay') ?? true,
@@ -128,7 +129,7 @@ class SettingsController extends Notifier<AppSettings> {
       hideShorts: p.getBool('hideShorts') ?? false,
     );
     _apply(s);
-    if (p.getString('hl') == 'en') unawaited(p.setString('hl', 'cs'));
+    if (savedHl == 'en') unawaited(p.setString('hl', 'cs'));
     return s;
   }
 
