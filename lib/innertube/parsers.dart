@@ -220,13 +220,41 @@ String? _channelIdIn(Object? node) {
   return null;
 }
 
+/// Some YouTube responses expose view counts only in accessibility labels.
+String? _accessibilityViewText(Object? node) {
+  final pattern = RegExp(r'(?:no views|[\\d.,]+\\s*[KMB]?\\s+views?)', caseSensitive: false);
+  String? found;
+  void walk(Object? value) {
+    if (found != null) return;
+    if (value is Map) {
+      for (final entry in value.entries) {
+        if (entry.key == 'accessibilityLabel' && entry.value is String) {
+          final match = pattern.firstMatch(entry.value as String);
+          if (match != null) {
+            found = match.group(0);
+            return;
+          }
+        }
+        walk(entry.value);
+      }
+    } else if (value is List) {
+      for (final item in value) {
+        walk(item);
+        if (found != null) return;
+      }
+    }
+  }
+  walk(node);
+  return found;
+}
+
 YtItem? _video(Json v) {
   final id = v['videoId'] as String?;
   final title = textOf(v['title']) ?? textOf(v['headline']);
   if (id == null || title == null) return null;
   final byline = v['longBylineText'] ?? v['ownerText'] ?? v['shortBylineText'];
   final length = textOf(v['lengthText']);
-  final views = textOf(v['shortViewCountText']) ?? textOf(v['viewCountText']);
+  final views = textOf(v['shortViewCountText']) ?? textOf(v['viewCountText']) ?? _accessibilityViewText(v);
   final live =
       length == null &&
       (views?.contains('watching') == true ||
@@ -258,7 +286,10 @@ YtItem? _lockup(Json v) {
   final title = nav<String>(meta, ['title', 'content']);
   if (id == null || title == null) return null;
   final rows = navList(meta, ['metadata', 'contentMetadataViewModel', 'metadataRows'])
-      .map((r) => navList(r, ['metadataParts']).map((p) => nav<String>(p, ['text', 'content'])).nonNulls.toList())
+      .map((r) => navList(r, ['metadataParts'])
+          .map((p) => nav<String>(p, ['text', 'content']) ?? p['accessibilityLabel'] as String?)
+          .nonNulls
+          .toList())
       .where((r) => r.isNotEmpty)
       .toList();
   final type = v['contentType'] as String?;
@@ -307,7 +338,7 @@ YtItem? _lockup(Json v) {
     channelAvatar: avatar,
     thumbnail: _bestImage(nav(image, ['image'])),
     durationText: duration,
-    viewsText: localizeViewsText(views),
+    viewsText: localizeViewsText(views ?? info.firstOrNull ?? _accessibilityViewText(v)),
     publishedText: _czechAge(age),
     isLive: duration == null && badges.any((b) => b.toUpperCase() == 'LIVE'),
   );
