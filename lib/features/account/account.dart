@@ -108,9 +108,13 @@ class AuthController extends AsyncNotifier<AuthState> {
         await _ensureRemotePlaylist(localId);
         break;
       case 'add':
-        final remoteId = await _ensureRemotePlaylist(localId);
-        if (remoteId != null && value != null) {
-          await _yt.editPlaylist(remoteId, value, add: true);
+        final existingRemoteId = await library.remotePlaylistId(localId);
+        if (existingRemoteId == null) {
+          // Creating the remote playlist copies all current local videos,
+          // including the video that triggered this add callback.
+          await _ensureRemotePlaylist(localId);
+        } else if (value != null) {
+          await _yt.editPlaylist(existingRemoteId, value, add: true);
         }
         break;
       case 'remove':
