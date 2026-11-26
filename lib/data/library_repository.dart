@@ -73,7 +73,7 @@ class LibraryRepository {
   Future<String?> remotePlaylistId(int localId) async {
     final rows = await db.customSelect(
       'SELECT youtube_playlist_id FROM playlist_sync WHERE local_playlist_id = ?',
-      [localId],
+      variables: [Variable<int>(localId)],
     ).get();
     return rows.isEmpty ? null : rows.first.read<String>('youtube_playlist_id');
   }
@@ -85,7 +85,7 @@ class LibraryRepository {
 
   Future<void> clearRemotePlaylistId(int localId) => db.customStatement(
     'DELETE FROM playlist_sync WHERE local_playlist_id = ?',
-    variables: [Variable<int>(localId)],
+    [localId],
   );
 
   Future<bool> isRemotePlaylistLinked(String youtubeId) async {
