@@ -222,7 +222,7 @@ String? _channelIdIn(Object? node) {
 
 /// Extracts a view count from both classic renderers and newer YouTube view models.
 String? _findViewCountText(Object? node) {
-  final viewPattern = RegExp(r'(?:no views|[\\d.,]+\\s*[KMB]?\\s*(?:views?|watching)|[\\d.,]+\\s*zhlédnutí)', caseSensitive: false);
+  final viewPattern = RegExp(r'(?:no views|[\d.,]+\s*[KMB]?\s*(?:views?|watching)|[\d.,]+\s*zhlédnutí)', caseSensitive: false);
   String? found;
   void walk(Object? value, {String? key}) {
     if (found != null || value == null) return;
